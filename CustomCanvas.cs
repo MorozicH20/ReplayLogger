@@ -21,6 +21,7 @@ namespace LegitimateChallenge
         public LoadingSprite loadingSprite;
 
         public TextMeshProUGUI prefabNumberInCanvas;
+        public TextMeshProUGUI timeInCanvas;
         public Image flagSpriteInCanvas;
 
         public Sprite flagSpriteTrue;
@@ -35,18 +36,18 @@ namespace LegitimateChallenge
             this.loadingSprite = loadingSprite;
 
             CreateCanvas();
+            if (flagSpriteFalse != null && flagSpriteTrue != null)
+            {
+                flagSpriteFalse = LoadEmbeddedSprite("Geo.png");
+                flagSpriteTrue = LoadEmbeddedSprite("ElegantKey.png");
 
-            flagSpriteFalse = LoadEmbeddedSprite("Geo.png");
-            flagSpriteTrue = LoadEmbeddedSprite("ElegantKey.png");
+            }
+
         }
 
-        ~CustomCanvas()
-        {
-            DestroyCanvas();
-        }
         public void StartUpdateSprite()
         {
-            _canvas.GetComponent<MonoBehaviour>().StartCoroutine(UpdateSprite());
+            _canvas?.GetComponent<MonoBehaviour>().StartCoroutine(UpdateSprite());
         }
 
         public void CreateCanvas()
@@ -61,9 +62,11 @@ namespace LegitimateChallenge
 
             Object.DontDestroyOnLoad(_canvas);
 
-            prefabNumberInCanvas = CreateWatermark(_canvas, new Vector2(600f, 450f), new Vector2(300, 100));
+            prefabNumberInCanvas = CreateWatermark(_canvas, new Vector2(850f, 500f), new Vector2(150, 50));
 
-            flagSpriteInCanvas = CreateSprite(_canvas, flagSpriteTrue, new Vector2(550f, -400f), new Vector2(300, 300));
+            timeInCanvas = CreateWatermark(_canvas, new Vector2(-850f, 500f), new Vector2(100, 25));
+
+            flagSpriteInCanvas = CreateSprite(_canvas, flagSpriteTrue, new Vector2(850f, -500f), new Vector2(50, 50));
 
 
             _canvas.SetActive(true);
@@ -75,7 +78,14 @@ namespace LegitimateChallenge
         {
             if (_canvas != null) Object.Destroy(_canvas);
             _canvas = null;
+
+            if (prefabNumberInCanvas != null) Object.Destroy(prefabNumberInCanvas);
             prefabNumberInCanvas = null;
+
+            if (timeInCanvas != null) Object.Destroy(timeInCanvas);
+            timeInCanvas = null;
+
+            if (flagSpriteInCanvas != null) Object.Destroy(flagSpriteInCanvas);
             flagSpriteInCanvas = null;
         }
 
@@ -111,17 +121,15 @@ namespace LegitimateChallenge
             TextMeshProUGUI textMeshProComponent = watermarkObject.AddComponent<TextMeshProUGUI>();
             textMeshProComponent.autoSizeTextContainer = true;
             textMeshProComponent.enableAutoSizing = true;
-            
-            textMeshProComponent.text = numberInCanvas.Number.ToString();
-            textMeshProComponent.color = numberInCanvas.Color;
 
+            textMeshProComponent.color = Color.green;
 
             RectTransform rectTransform = watermarkObject.GetComponent<RectTransform>();
             rectTransform.anchoredPosition = Vector2.zero;
             rectTransform.sizeDelta = size;
 
             rectTransform.localPosition = pos;
-            
+
 
             watermarkObject.SetActive(true);
 
@@ -135,6 +143,10 @@ namespace LegitimateChallenge
             prefabNumberInCanvas.text = numberInCanvas.Number.ToString();
 
             prefabNumberInCanvas.color = numberInCanvas.Color;
+        }
+        public void UpdateTime(string time)
+        {
+            timeInCanvas.text = time;
         }
 
         Sprite LoadEmbeddedSprite(string resourceName)
@@ -167,8 +179,8 @@ namespace LegitimateChallenge
             flagSpriteInCanvas.sprite = loadingSprite.Flag ? flagSpriteTrue : flagSpriteFalse;
             flagSpriteInCanvas.gameObject.SetActive(true);
             loadingSprite.NextGeneration();
-         
-            yield return new WaitForSecondsRealtime(loadingSprite.SecondCount/2);
+
+            yield return new WaitForSecondsRealtime(loadingSprite.SecondCount / 2);
 
             flagSpriteInCanvas.sprite = loadingSprite.Flag ? flagSpriteTrue : flagSpriteFalse;
 

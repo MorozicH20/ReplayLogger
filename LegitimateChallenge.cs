@@ -9,6 +9,7 @@ using System.Data;
 using System.IO;
 using UnityEngine;
 using UnityEngine.UIElements;
+using static System.Runtime.CompilerServices.RuntimeHelpers;
 using static UnityEngine.Networking.UnityWebRequest;
 using UObject = UnityEngine.Object;
 
@@ -22,12 +23,16 @@ namespace LegitimateChallenge
 
         public string fileName = "KeyLog.log";
 
-                
+
         private string filePath;
         private StreamWriter writer;
         private string lastString;
+        private string lastScene;
 
         private long lastUnixTime;
+        private long startUnixTime;
+
+        private bool inPlayChalange = false;
         public LegitimateChallenge() : base(ModInfo.Name) { }
         public override string GetVersion() => ModInfo.Version;
 
@@ -53,10 +58,18 @@ namespace LegitimateChallenge
 
         private void OpenFile(On.SceneLoad.orig_Begin orig, SceneLoad self)
         {
+            Modding.Logger.Log(self.TargetSceneName);
             lastUnixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds();
-
-            if (self.TargetSceneName.Contains("GG_Boss_Door"))
+            if (inPlayChalange && self.TargetSceneName.Contains("GG_Atrium"))
             {
+                startUnixTime = 0;
+                inPlayChalange = false;
+                customCanvas?.DestroyCanvas();
+            }
+            if (self.TargetSceneName.Contains("GG_Boss_Door") || self.TargetSceneName.Contains("GG_End_Sequence") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
+            {
+                startUnixTime = lastUnixTime;
+                inPlayChalange = true;
                 Close();
 
                 try
@@ -70,21 +83,21 @@ namespace LegitimateChallenge
                 Modding.Logger.Log("Логгер клавиатуры запущен. Запись в: " + filePath);
 
                 int seed = (int)(lastUnixTime ^ (int)(PlayerData.instance.playTime * 100));
-                customCanvas = new CustomCanvas(new NumberInCanvas(seed), new LoadingSprite(filePath));
-                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"time: {lastUnixTime} | playTime: {PlayerData.instance.playTime * 100} | scene: {self.TargetSceneName}")); // Используем оператор ?, чтобы избежать ошибки, если writer null
+
+                customCanvas = new CustomCanvas(new NumberInCanvas(seed), new LoadingSprite(lastString));
+
+                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"time: {lastUnixTime} | playTime: {PlayerData.instance.playTime * 100} | scene: {self.TargetSceneName}"));
                 writer?.Flush();
 
             }
             else
             {
-                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"time: {lastUnixTime} | scene: {self.TargetSceneName}")); // Используем оператор ?, чтобы избежать ошибки, если writer null
+                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"time: {lastUnixTime} | scene: {self.TargetSceneName}"));
                 writer?.Flush();
 
             }
+            lastScene = self.TargetSceneName;
             orig(self);
-
-            return;
-
         }
 
 
@@ -104,6 +117,8 @@ namespace LegitimateChallenge
         private void CheckPressedKey(On.GameManager.orig_Update orig, GameManager self)
         {
             orig(self);
+            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds() - startUnixTime);
+            customCanvas?.UpdateTime(dateTimeOffset.ToString("HH:mm:ss"));
 
             foreach (KeyCode keyCode in Enum.GetValues(typeof(KeyCode)))
             {

@@ -88,8 +88,5 @@ public class LoadingSprite
     }
 
 
-    public override string ToString()
-    {
-        return $"FrameCount: {SecondCount}, Flag: {Flag}";
-    }
+
 }
