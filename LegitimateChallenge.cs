@@ -28,6 +28,7 @@ namespace LegitimateChallenge
         private StreamWriter writer;
         private string lastString;
         private string lastScene;
+        private List<string> currentPanteon;
 
         private long lastUnixTime;
         private long startUnixTime;
@@ -41,7 +42,7 @@ namespace LegitimateChallenge
             base.Initialize();
             Instance = this;
             On.SceneLoad.Begin += OpenFile;
-            ModHooks.BeforeSceneLoadHook += StartLoad;
+            //ModHooks.BeforeSceneLoadHook += StartLoad;
             On.GameManager.Update += CheckPressedKey;
             ModHooks.ApplicationQuitHook += Close;
 
@@ -54,27 +55,25 @@ namespace LegitimateChallenge
 
         }
 
-        private string StartLoad(string arg)
+        private void StartLoad()
         {
             customCanvas?.StartUpdateSprite();
-            return arg;
         }
 
         private void OpenFile(On.SceneLoad.orig_Begin orig, SceneLoad self)
         {
             Modding.Logger.Log(self.TargetSceneName);
             lastUnixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds();
-            if (isPlayChalange && self.TargetSceneName.Contains("GG_Atrium"))
+            if (isPlayChalange && (self.TargetSceneName.Contains("GG_End_Seq") || GameManager.instance.gameState == GlobalEnums.GameState.CUTSCENE))
             {
-                startUnixTime = 0;
-                isPlayChalange = false;
-                customCanvas?.DestroyCanvas();
+                Close();
             }
-            if (self.TargetSceneName.Contains("GG_Boss_Door") || self.TargetSceneName.Contains("GG_End_Seq") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
+
+            if ( self.TargetSceneName.Contains("GG_Boss_Door") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
             {
                 startUnixTime = lastUnixTime;
+                int curentPlayTime = (int)(PlayerData.instance.playTime * 100);
                 isPlayChalange = true;
-                Close();
 
                 try
                 {
@@ -84,24 +83,39 @@ namespace LegitimateChallenge
                 {
                     Modding.Logger.LogError("Ошибка при открытии файла: " + e.Message);
                 }
-                Modding.Logger.Log("Логгер клавиатуры запущен. Запись в: " + filePath);
 
-                int seed = (int)(lastUnixTime ^ (int)(PlayerData.instance.playTime * 100));
-                try
-                {
-                    customCanvas = new CustomCanvas(new NumberInCanvas(seed), new LoadingSprite(lastString));
-                }
-                catch (Exception ex)
-                {
-                    Modding.Logger.LogError("Ошибка : " + ex.Message);
+                int seed = (int)(lastUnixTime ^ curentPlayTime);
 
-                }
-                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"time: {lastUnixTime} | playTime: {PlayerData.instance.playTime * 100} | scene: {self.TargetSceneName}"));
+                customCanvas = new CustomCanvas(new NumberInCanvas(seed), new LoadingSprite(lastString));
+
+                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"time: {lastUnixTime} | playTime: {curentPlayTime} | scene: {self.TargetSceneName}"));
                 writer?.Flush();
 
             }
-            else
+            else if (isPlayChalange)
             {
+                if (currentPanteon == null && lastScene.Contains("GG_Boss_Door") || lastScene.Contains("GG_Vengefly_V"))
+                {
+                    if (Panteons.P1.Contains(self.TargetSceneName))
+                        currentPanteon = Panteons.P1;
+                    if (Panteons.P2.Contains(self.TargetSceneName))
+                        currentPanteon = Panteons.P2;
+                    if (Panteons.P3.Contains(self.TargetSceneName))
+                        currentPanteon = Panteons.P3;
+                    if (Panteons.P4.Contains(self.TargetSceneName))
+                        currentPanteon = Panteons.P4;
+                    if (Panteons.P5.Contains(self.TargetSceneName))
+                        currentPanteon = Panteons.P5;
+                }
+                else
+                {
+                    if (currentPanteon.LastIndexOf(lastScene) != -1 && !(currentPanteon[currentPanteon.LastIndexOf(lastScene) + 1] == self.TargetSceneName))
+                    {
+                        Close();
+                    }
+                }
+
+                StartLoad();
                 writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"time: {lastUnixTime} | scene: {self.TargetSceneName}"));
                 writer?.Flush();
 
@@ -120,8 +134,10 @@ namespace LegitimateChallenge
                 writer = null;
                 Modding.Logger.Log("Логгер клавиатуры остановлен.");
             }
-
-
+            startUnixTime = 0;
+            isPlayChalange = false;
+            customCanvas?.DestroyCanvas();
+            currentPanteon = null;
         }
 
         private void CheckPressedKey(On.GameManager.orig_Update orig, GameManager self)
