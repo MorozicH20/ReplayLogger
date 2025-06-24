@@ -24,8 +24,8 @@ namespace LegitimateChallenge
         public TextMeshProUGUI timeInCanvas;
         public Image flagSpriteInCanvas;
 
-        public Sprite flagSpriteTrue;
-        public Sprite flagSpriteFalse;
+        public static Sprite flagSpriteTrue;
+        public static Sprite flagSpriteFalse;
 
 
         private GameObject _canvas;
@@ -36,12 +36,6 @@ namespace LegitimateChallenge
             this.loadingSprite = loadingSprite;
 
             CreateCanvas();
-            if (flagSpriteFalse != null && flagSpriteTrue != null)
-            {
-                flagSpriteFalse = LoadEmbeddedSprite("Geo.png");
-                flagSpriteTrue = LoadEmbeddedSprite("ElegantKey.png");
-
-            }
 
         }
 
@@ -71,6 +65,7 @@ namespace LegitimateChallenge
 
             _canvas.SetActive(true);
             prefabNumberInCanvas.gameObject.SetActive(true);
+            timeInCanvas.gameObject.SetActive(true);
             flagSpriteInCanvas.gameObject.SetActive(true);
         }
 
@@ -149,7 +144,7 @@ namespace LegitimateChallenge
             timeInCanvas.text = time;
         }
 
-        Sprite LoadEmbeddedSprite(string resourceName)
+        public static Sprite LoadEmbeddedSprite(string resourceName)
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
             string fullResourceName = assembly.GetName().Name + "." + "Resources" + "." + resourceName;

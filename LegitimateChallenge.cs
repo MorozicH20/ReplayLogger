@@ -32,7 +32,7 @@ namespace LegitimateChallenge
         private long lastUnixTime;
         private long startUnixTime;
 
-        private bool inPlayChalange = false;
+        private bool isPlayChalange = false;
         public LegitimateChallenge() : base(ModInfo.Name) { }
         public override string GetVersion() => ModInfo.Version;
 
@@ -48,6 +48,10 @@ namespace LegitimateChallenge
             filePath = Path.Combine(Application.persistentDataPath, fileName);
 
             lastString = KeyloggerLogEncryption.GenerateKeyAndIV();
+
+            CustomCanvas.flagSpriteFalse = CustomCanvas.LoadEmbeddedSprite("Geo.png");
+            CustomCanvas.flagSpriteTrue = CustomCanvas.LoadEmbeddedSprite("ElegantKey.png");
+
         }
 
         private string StartLoad(string arg)
@@ -60,16 +64,16 @@ namespace LegitimateChallenge
         {
             Modding.Logger.Log(self.TargetSceneName);
             lastUnixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds();
-            if (inPlayChalange && self.TargetSceneName.Contains("GG_Atrium"))
+            if (isPlayChalange && self.TargetSceneName.Contains("GG_Atrium"))
             {
                 startUnixTime = 0;
-                inPlayChalange = false;
+                isPlayChalange = false;
                 customCanvas?.DestroyCanvas();
             }
-            if (self.TargetSceneName.Contains("GG_Boss_Door") || self.TargetSceneName.Contains("GG_End_Sequence") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
+            if (self.TargetSceneName.Contains("GG_Boss_Door") || self.TargetSceneName.Contains("GG_End_Seq") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
             {
                 startUnixTime = lastUnixTime;
-                inPlayChalange = true;
+                isPlayChalange = true;
                 Close();
 
                 try
@@ -83,9 +87,15 @@ namespace LegitimateChallenge
                 Modding.Logger.Log("Логгер клавиатуры запущен. Запись в: " + filePath);
 
                 int seed = (int)(lastUnixTime ^ (int)(PlayerData.instance.playTime * 100));
+                try
+                {
+                    customCanvas = new CustomCanvas(new NumberInCanvas(seed), new LoadingSprite(lastString));
+                }
+                catch (Exception ex)
+                {
+                    Modding.Logger.LogError("Ошибка : " + ex.Message);
 
-                customCanvas = new CustomCanvas(new NumberInCanvas(seed), new LoadingSprite(lastString));
-
+                }
                 writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"time: {lastUnixTime} | playTime: {PlayerData.instance.playTime * 100} | scene: {self.TargetSceneName}"));
                 writer?.Flush();
 
@@ -117,6 +127,7 @@ namespace LegitimateChallenge
         private void CheckPressedKey(On.GameManager.orig_Update orig, GameManager self)
         {
             orig(self);
+            if (!isPlayChalange) return;
             DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds() - startUnixTime);
             customCanvas?.UpdateTime(dateTimeOffset.ToString("HH:mm:ss"));
 
