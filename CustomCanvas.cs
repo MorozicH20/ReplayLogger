@@ -56,11 +56,11 @@ namespace LegitimateChallenge
 
             Object.DontDestroyOnLoad(_canvas);
 
-            prefabNumberInCanvas = CreateWatermark(_canvas, new Vector2(850f, 500f), new Vector2(150, 50));
+            prefabNumberInCanvas = CreateWatermark(_canvas, new Vector2(850f, 500f), new Vector2(100, 25));
 
-            timeInCanvas = CreateWatermark(_canvas, new Vector2(-850f, 500f), new Vector2(100, 25));
+            timeInCanvas = CreateWatermark(_canvas, new Vector2(850f, 450f), new Vector2(100, 25));
 
-            flagSpriteInCanvas = CreateSprite(_canvas, flagSpriteTrue, new Vector2(850f, -500f), new Vector2(50, 50));
+            flagSpriteInCanvas = CreateSprite(_canvas, flagSpriteTrue, new Vector2(850f, -500f), new Vector2(70, 70));
 
 
             _canvas.SetActive(true);

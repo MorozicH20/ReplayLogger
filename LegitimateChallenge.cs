@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using static System.Runtime.CompilerServices.RuntimeHelpers;
@@ -45,6 +46,7 @@ namespace LegitimateChallenge
             //ModHooks.BeforeSceneLoadHook += StartLoad;
             On.GameManager.Update += CheckPressedKey;
             ModHooks.ApplicationQuitHook += Close;
+            On.QuitToMenu.Start += QuitToMenu_Start;
 
             filePath = Path.Combine(Application.persistentDataPath, fileName);
 
@@ -55,6 +57,12 @@ namespace LegitimateChallenge
 
         }
 
+        private IEnumerator QuitToMenu_Start(On.QuitToMenu.orig_Start orig, QuitToMenu self)
+        {
+            Close();
+            return orig(self);
+        }
+
         private void StartLoad()
         {
             customCanvas?.StartUpdateSprite();
@@ -62,14 +70,13 @@ namespace LegitimateChallenge
 
         private void OpenFile(On.SceneLoad.orig_Begin orig, SceneLoad self)
         {
-            Modding.Logger.Log(self.TargetSceneName);
             lastUnixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds();
-            if (isPlayChalange && (self.TargetSceneName.Contains("GG_End_Seq") || GameManager.instance.gameState == GlobalEnums.GameState.CUTSCENE))
+            if (isPlayChalange && self.TargetSceneName.Contains("GG_End_Seq"))
             {
                 Close();
             }
 
-            if ( self.TargetSceneName.Contains("GG_Boss_Door") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
+            if (self.TargetSceneName.Contains("GG_Boss_Door") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
             {
                 startUnixTime = lastUnixTime;
                 int curentPlayTime = (int)(PlayerData.instance.playTime * 100);
@@ -96,22 +103,29 @@ namespace LegitimateChallenge
             {
                 if (currentPanteon == null && lastScene.Contains("GG_Boss_Door") || lastScene.Contains("GG_Vengefly_V"))
                 {
-                    if (Panteons.P1.Contains(self.TargetSceneName))
-                        currentPanteon = Panteons.P1;
-                    if (Panteons.P2.Contains(self.TargetSceneName))
-                        currentPanteon = Panteons.P2;
-                    if (Panteons.P3.Contains(self.TargetSceneName))
-                        currentPanteon = Panteons.P3;
-                    if (Panteons.P4.Contains(self.TargetSceneName))
-                        currentPanteon = Panteons.P4;
-                    if (Panteons.P5.Contains(self.TargetSceneName))
-                        currentPanteon = Panteons.P5;
+                    if (self.TargetSceneName == Panteons.P1[0])
+                        currentPanteon = Panteons.P1.ToList();
+                    if (self.TargetSceneName == Panteons.P2[0])
+                        currentPanteon = Panteons.P2.ToList();
+                    if (self.TargetSceneName == Panteons.P3[0])
+                        currentPanteon = Panteons.P3.ToList();
+                    if (self.TargetSceneName == Panteons.P4[0])
+                        currentPanteon = Panteons.P4.ToList();
+                    if (self.TargetSceneName == Panteons.P5[1])
+                        currentPanteon = Panteons.P5.ToList();
                 }
                 else
                 {
-                    if (currentPanteon.LastIndexOf(lastScene) != -1 && !(currentPanteon[currentPanteon.LastIndexOf(lastScene) + 1] == self.TargetSceneName))
+
+                    if (currentPanteon.IndexOf(lastScene) != -1 && !(currentPanteon[currentPanteon.IndexOf(lastScene) + 1] == self.TargetSceneName))
                     {
+                        Modding.Logger.Log($"{lastScene}:{currentPanteon.IndexOf(lastScene)} -> {self.TargetSceneName} : {currentPanteon[currentPanteon.IndexOf(lastScene) + 1]}");
+
                         Close();
+                    }
+                    if (lastScene == "GG_Spa")
+                    {
+                        currentPanteon.Remove(lastScene);
                     }
                 }
 
@@ -142,8 +156,13 @@ namespace LegitimateChallenge
 
         private void CheckPressedKey(On.GameManager.orig_Update orig, GameManager self)
         {
+
             orig(self);
             if (!isPlayChalange) return;
+            if (GameManager.instance.gameState == GlobalEnums.GameState.CUTSCENE && lastScene == "GG_Radiance")
+                Close();
+
+
             DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds() - startUnixTime);
             customCanvas?.UpdateTime(dateTimeOffset.ToString("HH:mm:ss"));
 
