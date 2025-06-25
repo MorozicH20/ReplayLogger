@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 public class NumberInCanvas
 {
@@ -9,12 +11,11 @@ public class NumberInCanvas
     public NumberInCanvas(int initialSeed)
     {
         Seed = initialSeed;
-        //GenerateNumberAndColor(initialSeed);
     }
 
     public void NextGeneration(string keyPressed)
     {
-        Seed = CalculateNewSeed(Seed, keyPressed.GetHashCode());
+        Seed = CalculateNewSeed(Seed, GetConsistentHashCode(keyPressed));
         GenerateNumberAndColor(Seed);
     }
 
@@ -24,8 +25,18 @@ public class NumberInCanvas
 
         Number = prng.Next(10000000, 99999999);
         Color = new Color((float)prng.NextDouble(), (float)prng.NextDouble(), (float)prng.NextDouble(),1f);
-    }
 
+    }
+    private int GetConsistentHashCode(string str)
+    {
+        using (MD5 md5 = MD5.Create())
+        {
+            byte[] inputBytes = Encoding.UTF8.GetBytes(str);
+            byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+            return BitConverter.ToInt32(hashBytes, 0);
+        }
+    }
     private int CalculateNewSeed(int currentSeed, int keyModifier)
     {
         return currentSeed * 31 + keyModifier;

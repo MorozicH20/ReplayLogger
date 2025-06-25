@@ -43,7 +43,6 @@ namespace LegitimateChallenge
             base.Initialize();
             Instance = this;
             On.SceneLoad.Begin += OpenFile;
-            //ModHooks.BeforeSceneLoadHook += StartLoad;
             On.GameManager.Update += CheckPressedKey;
             ModHooks.ApplicationQuitHook += Close;
             On.QuitToMenu.Start += QuitToMenu_Start;
@@ -119,7 +118,6 @@ namespace LegitimateChallenge
 
                     if (currentPanteon.IndexOf(lastScene) != -1 && !(currentPanteon[currentPanteon.IndexOf(lastScene) + 1] == self.TargetSceneName))
                     {
-                        Modding.Logger.Log($"{lastScene}:{currentPanteon.IndexOf(lastScene)} -> {self.TargetSceneName} : {currentPanteon[currentPanteon.IndexOf(lastScene) + 1]}");
 
                         Close();
                     }

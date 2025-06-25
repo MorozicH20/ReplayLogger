@@ -64,9 +64,9 @@ namespace LegitimateChallenge
 
 
             _canvas.SetActive(true);
-            prefabNumberInCanvas.gameObject.SetActive(true);
-            timeInCanvas.gameObject.SetActive(true);
-            flagSpriteInCanvas.gameObject.SetActive(true);
+            //prefabNumberInCanvas.gameObject.SetActive(false);
+            //timeInCanvas.gameObject.SetActive(false);
+            flagSpriteInCanvas.gameObject.SetActive(false);
         }
 
         public void DestroyCanvas()
