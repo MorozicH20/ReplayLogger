@@ -166,7 +166,7 @@ namespace LegitimateChallenge
                 foreach (Collider2D t in array)
                 {
                     HealthManager healthManager = t.gameObject.GetComponent<HealthManager>();
-                    if (healthManager != null && !infoBoss.ContainsKey(healthManager))
+                    if (healthManager != null && healthManager.hp > 0 && !infoBoss.ContainsKey(healthManager))
                         infoBoss.Add(healthManager, (healthManager.hp, 0));
 
 
@@ -193,12 +193,12 @@ namespace LegitimateChallenge
                 DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|"));
             }
             isChange = false;
-            infoBoss.RemoveAll(kvp => kvp.Key.isDead == true);
+            infoBoss.RemoveAll(kvp => kvp.Key.isDead == true || kvp.Key.hp <= 0);
         }
 
         private void BossSceneController_Update(On.BossSceneController.orig_Update orig, BossSceneController self)
         {
-                EnemyUpdate();
+            EnemyUpdate();
             orig(self);
         }
 
@@ -232,13 +232,14 @@ namespace LegitimateChallenge
 
                 try
                 {
-                    writer = new StreamWriter(Path.Combine(dllDir, "KeyLog.log"), false);
+                    writer = new StreamWriter(Path.Combine(dllDir, $"KeyLog{DateTime.UtcNow.Ticks}.log"), false);
                     foreach (string log in startMods)
                     {
                         writer?.WriteLine(log);
                         writer?.Flush();
 
                     }
+
                 }
                 catch (Exception e)
                 {
@@ -290,12 +291,42 @@ namespace LegitimateChallenge
                 writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|{{sprite}}"));
                 writer?.Flush();
 
+                infoBoss.Clear();
             }
             lastScene = self.TargetSceneName;
             orig(self);
         }
 
+        private void CleanupOldLogFiles()
+        {
+            try
+            {
+                DirectoryInfo directory = new DirectoryInfo(dllDir);
+                FileInfo[] logFiles = directory.GetFiles($"KeyLog*.log")
+                                              .OrderBy(f => f.CreationTimeUtc)
+                                              .ToArray();
 
+                int filesToDelete = logFiles.Length - 10;
+                if (filesToDelete > 0)
+                {
+                    for (int i = 0; i < filesToDelete; i++)
+                    {
+                        try
+                        {
+                            File.Delete(logFiles[i].FullName);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error deleting old log file {logFiles[i].Name}: {ex.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cleaning up old log files: {ex.Message}");
+            }
+        }
         private void Close()
         {
             if (writer != null)
@@ -309,6 +340,7 @@ namespace LegitimateChallenge
 
                 }
                 writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("\n\n"));
+                DamageAnfInv = new();
 
                 endMods = ModsChecking.ParsingMods(Mods, modsDir);
                 foreach (string log in endMods)
@@ -320,6 +352,7 @@ namespace LegitimateChallenge
                 writer.Write(lastString);
                 writer.Close();
                 writer = null;
+                CleanupOldLogFiles();
                 Modding.Logger.Log("Логгер клавиатуры остановлен.");
             }
             startUnixTime = 0;
