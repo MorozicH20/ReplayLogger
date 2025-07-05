@@ -67,6 +67,7 @@ namespace LegitimateChallenge
                 Name = m.GetName(),
                 Version = m.GetVersion().Replace(CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator, "."),
                 Path = CalculateModPath(modsDir, m.GetName())
+                
             }).ToList();
 
 
@@ -85,7 +86,7 @@ namespace LegitimateChallenge
             var subDirectories = Directory.GetDirectories(modsDir);
 
             var matchingDirectory = subDirectories.FirstOrDefault(dir =>
-                Path.GetFileName(dir).Replace(" ", "").Equals(modName.Replace(" ", ""), System.StringComparison.OrdinalIgnoreCase));
+                Path.GetFileName(dir).Replace(" ", "").Replace("_", "").Equals(modName.Replace(" ", "").Replace("_",""), System.StringComparison.OrdinalIgnoreCase));
 
             if (matchingDirectory != null)
             {

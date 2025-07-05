@@ -22,7 +22,7 @@ namespace LegitimateChallenge
             foreach (var mod in Mods)
             {
                 strMods.Add(KeyloggerLogEncryption.EncryptLog($"{(mod.Name == ""||mod.Name==null ? "Modding API" : mod.Name)}|{mod.Version}|{mod.Hash}"));
-                dirs.RemoveAll(dir => Path.GetFileName(dir).Replace(" ", "").Equals(mod.Name.Replace(" ", ""), StringComparison.OrdinalIgnoreCase));
+                dirs.RemoveAll(dir => Path.GetFileName(dir).Replace(" ", "").Replace("_", "").Equals(mod.Name.Replace(" ", "").Replace("_",""), StringComparison.OrdinalIgnoreCase));
             }
             if (dirs.Count == 0)
             {
@@ -37,7 +37,7 @@ namespace LegitimateChallenge
                     EncDirs.Add(KeyloggerLogEncryption.EncryptLog(dir));
                 }
 
-                List<string> report = [KeyloggerLogEncryption.EncryptLog("Обнаружены посторонние модификации:"), .. EncDirs];
+                List<string> report = [.. strMods, KeyloggerLogEncryption.EncryptLog("Обнаружены незарегистрированные модификации:"), .. EncDirs];
                 return report;
             }
         }
