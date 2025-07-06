@@ -1,6 +1,7 @@
 ﻿using GlobalEnums;
 using HutongGames.PlayMaker;
 using IL;
+using InControl;
 using Modding;
 using Newtonsoft.Json;
 using On;
@@ -59,6 +60,8 @@ namespace LegitimateChallenge
             On.BossSceneController.Update += BossSceneController_Update;
             On.HeroController.FixedUpdate += HeroController_FixedUpdate;
 
+            On.SceneLoad.RecordEndTime += SceneLoad_RecordEndTime;
+
             dllDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             modsDir = new DirectoryInfo(dllDir).Parent.FullName;
 
@@ -67,7 +70,7 @@ namespace LegitimateChallenge
                 Name = m.GetName(),
                 Version = m.GetVersion().Replace(CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator, "."),
                 Path = CalculateModPath(modsDir, m.GetName())
-                
+
             }).ToList();
 
 
@@ -81,12 +84,29 @@ namespace LegitimateChallenge
             endMods = new();
             DamageAnfInv = new();
         }
+
+        private void SceneLoad_RecordEndTime(On.SceneLoad.orig_RecordEndTime orig, SceneLoad self, SceneLoad.Phases phase)
+        {
+            orig(self, phase);
+            if (phase == SceneLoad.Phases.UnloadUnusedAssets)
+            {
+                Self_Finish();
+            }
+        }
+
+        private void Self_Finish()
+        {
+            if (!isPlayChalange) return;
+                infoBoss.Clear();
+            Modding.Logger.Log("Clear");
+        }
+
         private static string CalculateModPath(string modsDir, string modName)
         {
             var subDirectories = Directory.GetDirectories(modsDir);
 
             var matchingDirectory = subDirectories.FirstOrDefault(dir =>
-                Path.GetFileName(dir).Replace(" ", "").Replace("_", "").Equals(modName.Replace(" ", "").Replace("_",""), System.StringComparison.OrdinalIgnoreCase));
+                Path.GetFileName(dir).Replace(" ", "").Replace("_", "").Equals(modName.Replace(" ", "").Replace("_", ""), System.StringComparison.OrdinalIgnoreCase));
 
             if (matchingDirectory != null)
             {
@@ -161,7 +181,7 @@ namespace LegitimateChallenge
 
             int layerMask = 1 << (int)PhysLayers.ENEMIES;
             Collider2D[] array = Physics2D.OverlapBoxAll(HeroController.instance.transform.position, new Vector2(500, 500), 1f, layerMask);
-            if (array != null)
+            if (array != null || array.Length == 0)
             {
 
                 foreach (Collider2D t in array)
@@ -179,7 +199,6 @@ namespace LegitimateChallenge
             List<HealthManager> bossKeys = infoBoss.Keys.ToList();
             foreach (var boss in bossKeys)
             {
-
                 if (boss.hp != infoBoss[boss].lastHP)
                 {
                     infoBoss[boss] = (infoBoss[boss].maxHP, boss.hp);
@@ -292,10 +311,10 @@ namespace LegitimateChallenge
                 writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|{{sprite}}"));
                 writer?.Flush();
 
-                infoBoss.Clear();
             }
             lastScene = self.TargetSceneName;
             orig(self);
+            infoBoss.Clear();
         }
 
         private void CleanupOldLogFiles()

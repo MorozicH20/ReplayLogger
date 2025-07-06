@@ -115,7 +115,7 @@ namespace LegitimateChallenge
             textMeshProComponent.autoSizeTextContainer = true;
             textMeshProComponent.enableAutoSizing = true;
 
-            textMeshProComponent.color = Color.green;
+            textMeshProComponent.color = Color.green*new Color(1,1,1,0.7f);
 
             RectTransform rectTransform = watermarkObject.GetComponent<RectTransform>();
             rectTransform.anchoredPosition = Vector2.zero;
