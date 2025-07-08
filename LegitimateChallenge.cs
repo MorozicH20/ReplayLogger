@@ -97,7 +97,7 @@ namespace LegitimateChallenge
         private void Self_Finish()
         {
             if (!isPlayChalange) return;
-                infoBoss.Clear();
+            infoBoss.Clear();
             Modding.Logger.Log("Clear");
         }
 
@@ -179,17 +179,43 @@ namespace LegitimateChallenge
         {
             if (!isPlayChalange) return;
 
-            int layerMask = 1 << (int)PhysLayers.ENEMIES;
-            Collider2D[] array = Physics2D.OverlapBoxAll(HeroController.instance.transform.position, new Vector2(500, 500), 1f, layerMask);
-            if (array != null || array.Length == 0)
+
+            //int layerMask = 1 << (int)PhysLayers.ENEMIES;
+            //Collider2D[] array = Physics2D.OverlapBoxAll(HeroController.instance.transform.position, new Vector2(500, 500), 1f, layerMask);
+            //if (array != null || array.Length > 0)
+            //{
+
+            //    foreach (Collider2D t in array)
+            //    {
+            //        HealthManager healthManager = t.gameObject.GetComponent<HealthManager>();
+
+            //        if (healthManager != null && healthManager.hp > 0 && !infoBoss.ContainsKey(healthManager))
+            //            infoBoss.Add(healthManager, (healthManager.hp, 0));
+            //        if (healthManager == null)
+            //        {
+
+            //            Component[] components = t.GetComponents<Component>();
+            //            Modding.Logger.Log(t.name);
+            //            foreach (Component component in components)
+            //            {
+            //                Modding.Logger.Log("Component: " + component.GetType().Name);
+            //            }
+            //        }
+
+            //    }
+
+            //}
+            HealthManager[] healthManagers = UObject.FindObjectsOfType<HealthManager>();
+
+            if (healthManagers != null || healthManagers.Length > 0)
             {
 
-                foreach (Collider2D t in array)
+                foreach (HealthManager t in healthManagers)
                 {
-                    HealthManager healthManager = t.gameObject.GetComponent<HealthManager>();
+                    HealthManager healthManager = t;
+
                     if (healthManager != null && healthManager.hp > 0 && !infoBoss.ContainsKey(healthManager))
                         infoBoss.Add(healthManager, (healthManager.hp, 0));
-
 
                 }
 
@@ -236,6 +262,7 @@ namespace LegitimateChallenge
 
         private void OpenFile(On.SceneLoad.orig_Begin orig, SceneLoad self)
         {
+
             var dataTimeNow = (DateTimeOffset)DateTime.Now;
             lastUnixTime = dataTimeNow.ToUnixTimeMilliseconds();
             var dataTime = dataTimeNow.ToString("dd.MM.yyyy HH:mm:ss.fff");
@@ -294,15 +321,17 @@ namespace LegitimateChallenge
                 }
                 else
                 {
+                    Modding.Logger.Log(self.TargetSceneName);
+                        if (currentPanteon.IndexOf(self.TargetSceneName) == -1 || (currentPanteon.IndexOf(lastScene)!=-1 && !(currentPanteon[currentPanteon.IndexOf(lastScene) + 1] == self.TargetSceneName)))
+                        {
+                            Close();
+                        }
+                        if (lastScene == "GG_Spa")
+                        {
+                            currentPanteon.Remove(lastScene);
+                        }
 
-                    if (currentPanteon.IndexOf(lastScene) != -1 && !(currentPanteon[currentPanteon.IndexOf(lastScene) + 1] == self.TargetSceneName))
-                    {
-                        Close();
-                    }
-                    if (lastScene == "GG_Spa")
-                    {
-                        currentPanteon.Remove(lastScene);
-                    }
+
                 }
 
                 StartLoad();
@@ -314,7 +343,7 @@ namespace LegitimateChallenge
             }
             lastScene = self.TargetSceneName;
             orig(self);
-            infoBoss.Clear();
+            //infoBoss.Clear();
         }
 
         private void CleanupOldLogFiles()
