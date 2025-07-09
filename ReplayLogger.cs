@@ -147,7 +147,7 @@ namespace ReplayLogger
                 isInvincible = true;
                 invTimer = 0f;
 
-                long unixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds();
+                long unixTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 string hpInfo = "";
                 foreach (var kvp in infoBoss.Values)
                 {
@@ -159,7 +159,7 @@ namespace ReplayLogger
             if (!shouldBeInvincible && isInvincible)
             {
                 isInvincible = false;
-                long unixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds();
+                long unixTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 string hpInfo = "";
                 foreach (var kvp in infoBoss.Values)
                 {
@@ -220,7 +220,7 @@ namespace ReplayLogger
                 }
 
             }
-            long unixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds();
+            long unixTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             string hpInfo = "";
             List<HealthManager> bossKeys = infoBoss.Keys.ToList();
             foreach (var boss in bossKeys)
@@ -264,7 +264,7 @@ namespace ReplayLogger
         private void OpenFile(On.SceneLoad.orig_Begin orig, SceneLoad self)
         {
 
-            var dataTimeNow = (DateTimeOffset)DateTime.Now;
+            var dataTimeNow = DateTimeOffset.Now;
             lastUnixTime = dataTimeNow.ToUnixTimeMilliseconds();
             var dataTime = dataTimeNow.ToString("dd.MM.yyyy HH:mm:ss.fff");
             if (isPlayChalange && self.TargetSceneName.Contains("GG_End_Seq"))
@@ -274,6 +274,10 @@ namespace ReplayLogger
 
             if (self.TargetSceneName.Contains("GG_Boss_Door") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
             {
+                if (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof")
+                {
+                        currentPanteon = ("P5", Panteons.P5.ToList());
+                }
                 startUnixTime = lastUnixTime;
                 int curentPlayTime = (int)(PlayerData.instance.playTime * 100);
                 isPlayChalange = true;
@@ -308,7 +312,7 @@ namespace ReplayLogger
             }
             else if (isPlayChalange)
             {
-                if (currentPanteon.list == null && lastScene.Contains("GG_Boss_Door") || lastScene.Contains("GG_Vengefly_V"))
+                if (currentPanteon.list == null && lastScene.Contains("GG_Boss_Door"))
                 {
                     if (self.TargetSceneName == Panteons.P1[0])
                         currentPanteon = ("P1",Panteons.P1.ToList());
@@ -318,8 +322,6 @@ namespace ReplayLogger
                         currentPanteon = ("P3", Panteons.P3.ToList());
                     if (self.TargetSceneName == Panteons.P4[0])
                         currentPanteon = ("P4", Panteons.P4.ToList());
-                    if (self.TargetSceneName == Panteons.P5[1])
-                        currentPanteon = ("P5", Panteons.P5.ToList());
                 }
                 else
                 {
@@ -353,7 +355,7 @@ namespace ReplayLogger
             try
             {
                 DirectoryInfo directory = new DirectoryInfo(dllDir);
-                FileInfo[] logFiles = directory.GetFiles($"KeyLog*.log")
+                FileInfo[] logFiles = directory.GetFiles($"P*.log")
                                               .OrderBy(f => f.CreationTimeUtc)
                                               .ToArray();
 
@@ -405,7 +407,7 @@ namespace ReplayLogger
                 writer.Close();
                 writer = null;
 
-                string dataTimeNow = DateTimeOffset.FromUnixTimeMilliseconds(lastUnixTime).ToString("dd-MM-yyyy HH-mm-ss");
+                string dataTimeNow = DateTimeOffset.FromUnixTimeMilliseconds(lastUnixTime).ToLocalTime().ToString("dd-MM-yyyy HH-mm-ss");
                 string newPath = Path.Combine(dllDir, $"{currentPanteon.name} ({dataTimeNow}).log");
                 Modding.Logger.Log(currentNameLog);
                 if (File.Exists(currentNameLog))
@@ -429,7 +431,7 @@ namespace ReplayLogger
                 Close();
 
 
-            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds() - startUnixTime);
+            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.Now.ToUnixTimeMilliseconds() - startUnixTime);
             customCanvas?.UpdateTime(dateTimeOffset.ToString("HH:mm:ss"));
 
             foreach (KeyCode keyCode in Enum.GetValues(typeof(KeyCode)))
@@ -438,7 +440,7 @@ namespace ReplayLogger
                 {
                     string keyStatus = Input.GetKeyDown(keyCode) ? "+" : "-";
 
-                    long unixTime = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeMilliseconds();
+                    long unixTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 
                     float fps = Time.unscaledDeltaTime == 0 ? lastFps : 1f / Time.unscaledDeltaTime;
                     lastFps = fps;
