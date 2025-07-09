@@ -11,7 +11,7 @@ using UnityEngine.UI;
 using static MonoMod.Cil.RuntimeILReferenceBag.FastDelegateInvokers;
 using Object = UnityEngine.Object;
 
-namespace LegitimateChallenge
+namespace ReplayLogger
 {
 
 
@@ -56,9 +56,9 @@ namespace LegitimateChallenge
 
             Object.DontDestroyOnLoad(_canvas);
 
-            prefabNumberInCanvas = CreateWatermark(_canvas, new Vector2(850f, 500f), new Vector2(100, 25));
+            prefabNumberInCanvas = CreateWatermark(_canvas, new Vector2(915f, 525f), new Vector2(85, 25));
 
-            timeInCanvas = CreateWatermark(_canvas, new Vector2(850f, 450f), new Vector2(100, 25));
+            timeInCanvas = CreateWatermark(_canvas, new Vector2(915f, 510f), new Vector2(80, 25));
 
             flagSpriteInCanvas = CreateSprite(_canvas, flagSpriteTrue, new Vector2(850f, -500f), new Vector2(70, 70));
 
@@ -115,7 +115,7 @@ namespace LegitimateChallenge
             textMeshProComponent.autoSizeTextContainer = true;
             textMeshProComponent.enableAutoSizing = true;
 
-            textMeshProComponent.color = Color.green*new Color(1,1,1,0.7f);
+            textMeshProComponent.color = Color.green*new Color(1,1,1,0.5f);
 
             RectTransform rectTransform = watermarkObject.GetComponent<RectTransform>();
             rectTransform.anchoredPosition = Vector2.zero;

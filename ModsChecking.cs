@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -8,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Modding;
 
-namespace LegitimateChallenge
+namespace ReplayLogger
 {
     internal static class ModsChecking
     {
@@ -19,6 +20,7 @@ namespace LegitimateChallenge
             List<string> dirs = Directory.GetDirectories(modsDir).ToList();
             dirs.Remove(Path.Combine(modsDir, "Disabled"));
             dirs.Remove(Path.Combine(modsDir, "Vasi"));
+
             foreach (var mod in Mods)
             {
                 strMods.Add(KeyloggerLogEncryption.EncryptLog($"{(mod.Name == ""||mod.Name==null ? "Modding API" : mod.Name)}|{mod.Version}|{mod.Hash}"));

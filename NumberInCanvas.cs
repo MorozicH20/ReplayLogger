@@ -24,7 +24,7 @@ public class NumberInCanvas
         System.Random prng = new System.Random(seed);
 
         Number = prng.Next(10000000, 99999999);
-        Color = new Color((float)prng.NextDouble(), (float)prng.NextDouble(), (float)prng.NextDouble(),1f);
+        Color = new Color((float)prng.NextDouble(), (float)prng.NextDouble(), (float)prng.NextDouble(),0.5f);
 
     }
     private int GetConsistentHashCode(string str)

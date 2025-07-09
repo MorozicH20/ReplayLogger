@@ -8,11 +8,11 @@
     <!--<DocumentationFile>$(OutputPath)/$(AssemblyTitle).xml</DocumentationFile>-->
   </PropertyGroup>
   <PropertyGroup>
-    <RootNamespace>LegitimateChallenge</RootNamespace>
-    <AssemblyName>LegitimateChallenge</AssemblyName>
+    <RootNamespace>ReplayLogger</RootNamespace>
+    <AssemblyName>ReplayLogger</AssemblyName>
     <TargetFramework>net472</TargetFramework>
-    <AssemblyTitle>LegitimateChallenge</AssemblyTitle>
-    <Product>LegitimateChallenge</Product>
+    <AssemblyTitle>ReplayLogger</AssemblyTitle>
+    <Product>ReplayLogger</Product>
     <Description>A Hollow Knight Mod</Description>
     <Copyright>Copyright ©  2025</Copyright>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>

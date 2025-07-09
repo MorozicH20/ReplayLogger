@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LegitimateChallenge
+namespace ReplayLogger
 {
     internal class ModVersion
     {

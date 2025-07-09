@@ -20,11 +20,11 @@ using static UnityEngine.Networking.UnityWebRequest;
 using UObject = UnityEngine.Object;
 
 
-namespace LegitimateChallenge
+namespace ReplayLogger
 {
-    public class LegitimateChallenge : Mod
+    public class ReplayLogger : Mod
     {
-        internal static LegitimateChallenge Instance;
+        internal static ReplayLogger Instance;
 
         internal CustomCanvas customCanvas;
         private string dllDir;
@@ -33,7 +33,7 @@ namespace LegitimateChallenge
         private StreamWriter writer;
         private string lastString;
         private string lastScene;
-        private List<string> currentPanteon;
+        private (string name, List<string> list) currentPanteon;
 
         private long lastUnixTime;
         private long startUnixTime;
@@ -46,7 +46,7 @@ namespace LegitimateChallenge
 
         private List<string> DamageAnfInv;
 
-        public LegitimateChallenge() : base(ModInfo.Name) { }
+        public ReplayLogger() : base(ModInfo.Name) { }
         public override string GetVersion() => ModInfo.Version;
 
         public override void Initialize()
@@ -260,6 +260,7 @@ namespace LegitimateChallenge
             customCanvas?.StartUpdateSprite();
         }
 
+        private string currentNameLog;
         private void OpenFile(On.SceneLoad.orig_Begin orig, SceneLoad self)
         {
 
@@ -279,7 +280,8 @@ namespace LegitimateChallenge
 
                 try
                 {
-                    writer = new StreamWriter(Path.Combine(dllDir, $"KeyLog{DateTime.UtcNow.Ticks}.log"), false);
+                    currentNameLog = Path.Combine(dllDir, $"KeyLog{DateTime.UtcNow.Ticks}.log");
+                    writer = new StreamWriter(currentNameLog, false);
                     foreach (string log in startMods)
                     {
                         writer?.WriteLine(log);
@@ -306,30 +308,30 @@ namespace LegitimateChallenge
             }
             else if (isPlayChalange)
             {
-                if (currentPanteon == null && lastScene.Contains("GG_Boss_Door") || lastScene.Contains("GG_Vengefly_V"))
+                if (currentPanteon.list == null && lastScene.Contains("GG_Boss_Door") || lastScene.Contains("GG_Vengefly_V"))
                 {
                     if (self.TargetSceneName == Panteons.P1[0])
-                        currentPanteon = Panteons.P1.ToList();
+                        currentPanteon = ("P1",Panteons.P1.ToList());
                     if (self.TargetSceneName == Panteons.P2[0])
-                        currentPanteon = Panteons.P2.ToList();
+                        currentPanteon = ("P2", Panteons.P2.ToList());
                     if (self.TargetSceneName == Panteons.P3[0])
-                        currentPanteon = Panteons.P3.ToList();
+                        currentPanteon = ("P3", Panteons.P3.ToList());
                     if (self.TargetSceneName == Panteons.P4[0])
-                        currentPanteon = Panteons.P4.ToList();
+                        currentPanteon = ("P4", Panteons.P4.ToList());
                     if (self.TargetSceneName == Panteons.P5[1])
-                        currentPanteon = Panteons.P5.ToList();
+                        currentPanteon = ("P5", Panteons.P5.ToList());
                 }
                 else
                 {
                     Modding.Logger.Log(self.TargetSceneName);
-                        if (currentPanteon.IndexOf(self.TargetSceneName) == -1 || (currentPanteon.IndexOf(lastScene)!=-1 && !(currentPanteon[currentPanteon.IndexOf(lastScene) + 1] == self.TargetSceneName)))
-                        {
-                            Close();
-                        }
-                        if (lastScene == "GG_Spa")
-                        {
-                            currentPanteon.Remove(lastScene);
-                        }
+                    if (currentPanteon.list.IndexOf(self.TargetSceneName) == -1 || (currentPanteon.list.IndexOf(lastScene) != -1 && !(currentPanteon.list[currentPanteon.list.IndexOf(lastScene) + 1] == self.TargetSceneName)))
+                    {
+                        Close();
+                    }
+                    if (lastScene == "GG_Spa")
+                    {
+                        currentPanteon.list.Remove(lastScene);
+                    }
 
 
                 }
@@ -399,15 +401,22 @@ namespace LegitimateChallenge
 
                 }
                 writer.Write(lastString);
+                writer.Flush();
                 writer.Close();
                 writer = null;
+
+                string dataTimeNow = DateTimeOffset.FromUnixTimeMilliseconds(lastUnixTime).ToString("dd-MM-yyyy HH-mm-ss");
+                string newPath = Path.Combine(dllDir, $"{currentPanteon.name} ({dataTimeNow}).log");
+                Modding.Logger.Log(currentNameLog);
+                if (File.Exists(currentNameLog))
+                    File.Move(currentNameLog, newPath);
                 CleanupOldLogFiles();
                 Modding.Logger.Log("Логгер клавиатуры остановлен.");
             }
             startUnixTime = 0;
             isPlayChalange = false;
             customCanvas?.DestroyCanvas();
-            currentPanteon = null;
+            currentPanteon = (null,null);
         }
 
         float lastFps = 0f;
