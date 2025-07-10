@@ -126,7 +126,7 @@ namespace ReplayLogger
         }
 
         Dictionary<HealthManager, (int maxHP, int lastHP)> infoBoss = new();
-
+        Dictionary<GameObject, Dictionary<HealthManager, (int maxHP, int lastHP)>> unicBoss = new();
         bool isInvincible = false;
         float invTimer;
 
@@ -141,6 +141,8 @@ namespace ReplayLogger
              HeroController.instance.damageMode == DamageMode.HAZARD_ONLY ||
              HeroController.instance.damageMode == DamageMode.NO_DAMAGE);
 
+            var bossList = infoBoss.GetKeysWithUniqueGameObject().Values;
+
 
             if (shouldBeInvincible && !isInvincible)
             {
@@ -149,9 +151,9 @@ namespace ReplayLogger
 
                 long unixTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 string hpInfo = "";
-                foreach (var kvp in infoBoss.Values)
+                foreach (var kvp in bossList)
                 {
-                    hpInfo += $"|{kvp.lastHP}/{kvp.maxHP}";
+                    hpInfo += $"|{infoBoss[kvp].lastHP}/{infoBoss[kvp].maxHP}";
                 }
                 DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|(INV ON)|"));
             }
@@ -161,9 +163,10 @@ namespace ReplayLogger
                 isInvincible = false;
                 long unixTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 string hpInfo = "";
-                foreach (var kvp in infoBoss.Values)
+                foreach (var kvp in bossList)
                 {
-                    hpInfo += $"|{kvp.lastHP}/{kvp.maxHP}";
+                    hpInfo += $"|{infoBoss[kvp].lastHP}/{infoBoss[kvp].maxHP}";
+
                 }
                 DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|(INV OFF, {invTimer.ToString("F3")})|"));
                 invTimer = 0f;
@@ -210,21 +213,26 @@ namespace ReplayLogger
             if (healthManagers != null || healthManagers.Length > 0)
             {
 
-                foreach (HealthManager t in healthManagers)
+                foreach (HealthManager healthManager in healthManagers)
                 {
-                    HealthManager healthManager = t;
 
                     if (healthManager != null && healthManager.hp > 0 && !infoBoss.ContainsKey(healthManager))
+                    {
                         infoBoss.Add(healthManager, (healthManager.hp, 0));
+
+                    }
+
 
                 }
 
             }
             long unixTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             string hpInfo = "";
-            List<HealthManager> bossKeys = infoBoss.Keys.ToList();
-            foreach (var boss in bossKeys)
+
+            var bossKeys = infoBoss.GetKeysWithUniqueGameObject().Values;
+            foreach (var boss in infoBoss.Keys)
             {
+                if (!bossKeys.Contains(boss)&& !boss.isDead) continue;
                 if (boss.hp != infoBoss[boss].lastHP)
                 {
                     infoBoss[boss] = (infoBoss[boss].maxHP, boss.hp);
@@ -263,87 +271,93 @@ namespace ReplayLogger
         private string currentNameLog;
         private void OpenFile(On.SceneLoad.orig_Begin orig, SceneLoad self)
         {
-
-            var dataTimeNow = DateTimeOffset.Now;
-            lastUnixTime = dataTimeNow.ToUnixTimeMilliseconds();
-            var dataTime = dataTimeNow.ToString("dd.MM.yyyy HH:mm:ss.fff");
-            if (isPlayChalange && self.TargetSceneName.Contains("GG_End_Seq"))
+            try
             {
-                Close();
-            }
-
-            if (self.TargetSceneName.Contains("GG_Boss_Door") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
-            {
-                if (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof")
+                var dataTimeNow = DateTimeOffset.Now;
+                lastUnixTime = dataTimeNow.ToUnixTimeMilliseconds();
+                var dataTime = dataTimeNow.ToString("dd.MM.yyyy HH:mm:ss.fff");
+                if (isPlayChalange && self.TargetSceneName.Contains("GG_End_Seq"))
                 {
+                    Close();
+                }
+
+                if (self.TargetSceneName.Contains("GG_Boss_Door") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
+                {
+                    if (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof")
+                    {
                         currentPanteon = ("P5", Panteons.P5.ToList());
-                }
-                startUnixTime = lastUnixTime;
-                int curentPlayTime = (int)(PlayerData.instance.playTime * 100);
-                isPlayChalange = true;
+                    }
+                    startUnixTime = lastUnixTime;
+                    int curentPlayTime = (int)(PlayerData.instance.playTime * 100);
+                    isPlayChalange = true;
 
-                try
-                {
-                    currentNameLog = Path.Combine(dllDir, $"KeyLog{DateTime.UtcNow.Ticks}.log");
-                    writer = new StreamWriter(currentNameLog, false);
-                    foreach (string log in startMods)
+                    try
                     {
-                        writer?.WriteLine(log);
-                        writer?.Flush();
+                        currentNameLog = Path.Combine(dllDir, $"KeyLog{DateTime.UtcNow.Ticks}.log");
+                        writer = new StreamWriter(currentNameLog, false);
+                        foreach (string log in startMods)
+                        {
+                            writer?.WriteLine(log);
+                            writer?.Flush();
+
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        Modding.Logger.LogError("Ошибка при открытии файла: " + e.Message);
+                    }
+
+                    int seed = (int)(lastUnixTime ^ curentPlayTime);
+
+                    customCanvas = new CustomCanvas(new NumberInCanvas(seed), new LoadingSprite(lastString));
+                    DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|"));
+
+                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{curentPlayTime}|{self.TargetSceneName}|"));
+                    writer?.Flush();
+
+
+
+                }
+                else if (isPlayChalange)
+                {
+                    if (currentPanteon.list == null && lastScene.Contains("GG_Boss_Door"))
+                    {
+                        if (self.TargetSceneName == Panteons.P1[0])
+                            currentPanteon = ("P1", Panteons.P1.ToList());
+                        if (self.TargetSceneName == Panteons.P2[0])
+                            currentPanteon = ("P2", Panteons.P2.ToList());
+                        if (self.TargetSceneName == Panteons.P3[0])
+                            currentPanteon = ("P3", Panteons.P3.ToList());
+                        if (self.TargetSceneName == Panteons.P4[0])
+                            currentPanteon = ("P4", Panteons.P4.ToList());
+                    }
+                    else
+                    {
+                        Modding.Logger.Log(self.TargetSceneName);
+                        if (currentPanteon.list.IndexOf(self.TargetSceneName) == -1 || (currentPanteon.list.IndexOf(lastScene) != -1 && !(currentPanteon.list[currentPanteon.list.IndexOf(lastScene) + 1] == self.TargetSceneName)))
+                        {
+                            Close();
+                        }
+                        if (lastScene == "GG_Spa")
+                        {
+                            currentPanteon.list?.Remove(lastScene);
+                        }
+
 
                     }
 
+                    StartLoad();
+                    DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|"));
+
+                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|{{sprite}}"));
+                    writer?.Flush();
+
                 }
-                catch (Exception e)
-                {
-                    Modding.Logger.LogError("Ошибка при открытии файла: " + e.Message);
-                }
-
-                int seed = (int)(lastUnixTime ^ curentPlayTime);
-
-                customCanvas = new CustomCanvas(new NumberInCanvas(seed), new LoadingSprite(lastString));
-                DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|"));
-
-                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{curentPlayTime}|{self.TargetSceneName}|"));
-                writer?.Flush();
-
-
-
             }
-            else if (isPlayChalange)
+            catch (Exception e)
             {
-                if (currentPanteon.list == null && lastScene.Contains("GG_Boss_Door"))
-                {
-                    if (self.TargetSceneName == Panteons.P1[0])
-                        currentPanteon = ("P1",Panteons.P1.ToList());
-                    if (self.TargetSceneName == Panteons.P2[0])
-                        currentPanteon = ("P2", Panteons.P2.ToList());
-                    if (self.TargetSceneName == Panteons.P3[0])
-                        currentPanteon = ("P3", Panteons.P3.ToList());
-                    if (self.TargetSceneName == Panteons.P4[0])
-                        currentPanteon = ("P4", Panteons.P4.ToList());
-                }
-                else
-                {
-                    Modding.Logger.Log(self.TargetSceneName);
-                    if (currentPanteon.list.IndexOf(self.TargetSceneName) == -1 || (currentPanteon.list.IndexOf(lastScene) != -1 && !(currentPanteon.list[currentPanteon.list.IndexOf(lastScene) + 1] == self.TargetSceneName)))
-                    {
-                        Close();
-                    }
-                    if (lastScene == "GG_Spa")
-                    {
-                        currentPanteon.list.Remove(lastScene);
-                    }
-
-
-                }
-
-                StartLoad();
-                DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|"));
-
-                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|{{sprite}}"));
-                writer?.Flush();
-
+                Modding.Logger.Log(e.Message);
             }
             lastScene = self.TargetSceneName;
             orig(self);
@@ -418,7 +432,7 @@ namespace ReplayLogger
             startUnixTime = 0;
             isPlayChalange = false;
             customCanvas?.DestroyCanvas();
-            currentPanteon = (null,null);
+            currentPanteon = (null, null);
         }
 
         float lastFps = 0f;
