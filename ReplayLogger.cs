@@ -182,32 +182,6 @@ namespace ReplayLogger
         {
             if (!isPlayChalange) return;
 
-
-            //int layerMask = 1 << (int)PhysLayers.ENEMIES;
-            //Collider2D[] array = Physics2D.OverlapBoxAll(HeroController.instance.transform.position, new Vector2(500, 500), 1f, layerMask);
-            //if (array != null || array.Length > 0)
-            //{
-
-            //    foreach (Collider2D t in array)
-            //    {
-            //        HealthManager healthManager = t.gameObject.GetComponent<HealthManager>();
-
-            //        if (healthManager != null && healthManager.hp > 0 && !infoBoss.ContainsKey(healthManager))
-            //            infoBoss.Add(healthManager, (healthManager.hp, 0));
-            //        if (healthManager == null)
-            //        {
-
-            //            Component[] components = t.GetComponents<Component>();
-            //            Modding.Logger.Log(t.name);
-            //            foreach (Component component in components)
-            //            {
-            //                Modding.Logger.Log("Component: " + component.GetType().Name);
-            //            }
-            //        }
-
-            //    }
-
-            //}
             HealthManager[] healthManagers = UObject.FindObjectsOfType<HealthManager>();
 
             if (healthManagers != null || healthManagers.Length > 0)
@@ -334,8 +308,13 @@ namespace ReplayLogger
                     }
                     else
                     {
-                        Modding.Logger.Log(self.TargetSceneName);
-                        if (currentPanteon.list.IndexOf(self.TargetSceneName) == -1 || (currentPanteon.list.IndexOf(lastScene) != -1 && !(currentPanteon.list[currentPanteon.list.IndexOf(lastScene) + 1] == self.TargetSceneName)))
+                        List<string> skipScenes = new List<string> { "GG_Engine", "GG_Unn", "GG_Engine_Root", "GG_Wyrm" };
+
+                        int targetIndex = currentPanteon.list.IndexOf((self.TargetSceneName));
+                        int lastSceneIndex = currentPanteon.list.IndexOf(lastScene);
+
+
+                        if (targetIndex == -1 || (lastSceneIndex != -1 && !(IsValidNextScene(currentPanteon.list, lastSceneIndex, self.TargetSceneName, skipScenes))))
                         {
                             Close();
                         }
@@ -361,9 +340,24 @@ namespace ReplayLogger
             }
             lastScene = self.TargetSceneName;
             orig(self);
-            //infoBoss.Clear();
         }
+        private bool IsValidNextScene(List<string> panteonList, int lastSceneIndex, string targetSceneName, List<string> skipScenes)
+        {
+            int nextIndex = lastSceneIndex + 1;
 
+            if(nextIndex>=panteonList.Count) return false;
+
+            string expectedNextScene = panteonList[nextIndex];
+
+            if (expectedNextScene != targetSceneName)
+            {
+                nextIndex++;
+                expectedNextScene = panteonList[nextIndex];
+
+            }
+
+            return expectedNextScene == targetSceneName;
+        }
         private void CleanupOldLogFiles()
         {
             try
@@ -423,7 +417,6 @@ namespace ReplayLogger
 
                 string dataTimeNow = DateTimeOffset.FromUnixTimeMilliseconds(lastUnixTime).ToLocalTime().ToString("dd-MM-yyyy HH-mm-ss");
                 string newPath = Path.Combine(dllDir, $"{currentPanteon.name} ({dataTimeNow}).log");
-                Modding.Logger.Log(currentNameLog);
                 if (File.Exists(currentNameLog))
                     File.Move(currentNameLog, newPath);
                 CleanupOldLogFiles();

@@ -48,6 +48,7 @@ namespace ReplayLogger
         {
             try
             {
+                if(filePath==null || filePath == "") return null;
                 if (!File.Exists(filePath))
                 {
                     Modding.Logger.Log($"Файл не найден: {filePath}");

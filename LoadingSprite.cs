@@ -17,7 +17,7 @@ public class LoadingSprite
     {
         currentSeed = HashToInt(CalculateStringHash(str));
         prng = new System.Random(currentSeed);
-        SecondCount = prng.Next(1, 5);
+        SecondCount = prng.Next(2, 5);
         Flag = false;
         previousSecondCount = SecondCount;
     }
@@ -80,9 +80,9 @@ public class LoadingSprite
         int randomOffset = prng.Next(-5, 6);
 
 
-        int frameCount = prng.Next(1, 5) + randomOffset;
+        int frameCount = prng.Next(2, 5) + randomOffset;
 
-        frameCount = Mathf.Clamp(frameCount, 1, 5);
+        frameCount = Mathf.Clamp(frameCount, 2, 5);
 
         return frameCount;
     }
