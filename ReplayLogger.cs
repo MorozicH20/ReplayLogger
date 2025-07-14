@@ -98,7 +98,6 @@ namespace ReplayLogger
         {
             if (!isPlayChalange) return;
             infoBoss.Clear();
-            Modding.Logger.Log("Clear");
         }
 
         private static string CalculateModPath(string modsDir, string modName)
@@ -420,7 +419,6 @@ namespace ReplayLogger
                 if (File.Exists(currentNameLog))
                     File.Move(currentNameLog, newPath);
                 CleanupOldLogFiles();
-                Modding.Logger.Log("Логгер клавиатуры остановлен.");
             }
             startUnixTime = 0;
             isPlayChalange = false;
