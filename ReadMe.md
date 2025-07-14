@@ -1,5 +1,5 @@
-# ReplayLoger
-ReplayLoger is a mod that was created to verify the legitimacy of player challenge runs. It implements a hidden keylogging system with visualization of specific inputs. These keys are needed to prevent video editing and other cheating methods during challenge attempts.
+# ReplayLogger
+ReplayLogger is a mod that was created to verify the legitimacy of player challenge runs. It implements a hidden keylogging system with visualization of specific inputs. These keys are needed to prevent video editing and other cheating methods during challenge attempts.
 
 The mod activates when entering the Pantheons and records:
 * All keyboard presses
