@@ -29,14 +29,10 @@ public class KeyloggerLogEncryption
                 aesAlg.GenerateKey();
                 aesAlg.GenerateIV();
 
-                // Шифруем ключ AES с помощью мастер-ключа
                 byte[] encryptedKey = EncryptWithMasterKey(aesAlg.Key, MasterKey, MasterIV);
 
-                // Шифруем данные логов с помощью сгенерированного ключа AES
                 byte[] encryptedData = EncryptData(logData, aesAlg.Key, aesAlg.IV);
 
-                // Формируем строку для возврата (зашифрованный ключ + IV + зашифрованные данные)
-                // Кодируем все в Base64 для удобства передачи и хранения в виде строки.
                 string encryptedKeyBase64 = Convert.ToBase64String(encryptedKey);
                 string ivBase64 = Convert.ToBase64String(aesAlg.IV);
                 string encryptedDataBase64 = Convert.ToBase64String(encryptedData);
@@ -47,7 +43,7 @@ public class KeyloggerLogEncryption
         catch (Exception ex)
         {
             Modding.Logger.Log($"Ошибка при шифровании лога: {ex.Message}");
-            return null; // Или выбросьте исключение, в зависимости от вашей стратегии обработки ошибок
+            return null;
         }
     }
 
@@ -57,8 +53,8 @@ public class KeyloggerLogEncryption
         {
             aesAlg.Key = key;
             aesAlg.IV = iv;
-            aesAlg.Mode = CipherMode.CBC;  // Важно указать режим CipherMode
-            aesAlg.Padding = PaddingMode.PKCS7;  // И PaddingMode
+            aesAlg.Mode = CipherMode.CBC;
+            aesAlg.Padding = PaddingMode.PKCS7;
 
             ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
 
@@ -81,8 +77,8 @@ public class KeyloggerLogEncryption
         {
             aesAlg.Key = key;
             aesAlg.IV = iv;
-            aesAlg.Mode = CipherMode.CBC;  // Важно указать режим CipherMode
-            aesAlg.Padding = PaddingMode.PKCS7;  // И PaddingMode
+            aesAlg.Mode = CipherMode.CBC;
+            aesAlg.Padding = PaddingMode.PKCS7;
 
 
             ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
@@ -105,7 +101,7 @@ public class KeyloggerLogEncryption
         StringBuilder sb = new StringBuilder(bytes.Length * 2);
         foreach (byte b in bytes)
         {
-            sb.Append(b.ToString("x2")); // "x2" преобразует байт в строчное шестнадцатеричное представление (например, "ff")
+            sb.Append(b.ToString("x2"));
         }
         return sb.ToString();
     }
