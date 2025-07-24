@@ -40,7 +40,6 @@ namespace ReplayLogger
 
         private bool isPlayChalange = false;
 
-        private List<ModVersion> Mods;
         private List<string> startMods;
         private List<string> endMods;
 
@@ -65,13 +64,6 @@ namespace ReplayLogger
             dllDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             modsDir = new DirectoryInfo(dllDir).Parent.FullName;
 
-            Mods = ModHooks.GetAllMods(false).Select(m => new ModVersion
-            {
-                Name = m.GetName(),
-                Version = m.GetVersion().Replace(CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator, "."),
-                Path = CalculateModPath(modsDir, m.GetName())
-
-            }).ToList();
 
 
             lastString = KeyloggerLogEncryption.GenerateKeyAndIV();
@@ -80,7 +72,7 @@ namespace ReplayLogger
             CustomCanvas.flagSpriteTrue = CustomCanvas.LoadEmbeddedSprite("ElegantKey.png");
 
 
-            startMods = ModsChecking.ParsingMods(Mods, modsDir);
+            startMods = ModsChecking.ScanMods(modsDir);
             endMods = new();
             DamageAnfInv = new();
         }
@@ -98,24 +90,6 @@ namespace ReplayLogger
         {
             if (!isPlayChalange) return;
             infoBoss.Clear();
-        }
-
-        private static string CalculateModPath(string modsDir, string modName)
-        {
-            var subDirectories = Directory.GetDirectories(modsDir);
-
-            var matchingDirectory = subDirectories.FirstOrDefault(dir =>
-                Path.GetFileName(dir).Replace(" ", "").Replace("_", "").Equals(modName.Replace(" ", "").Replace("_", ""), System.StringComparison.OrdinalIgnoreCase));
-
-            if (matchingDirectory != null)
-            {
-                return Path.Combine(matchingDirectory, modName + ".dll");
-            }
-            else
-            {
-                Modding.Logger.LogError($"Ненайдена директория '{modName}' in '{modsDir}'.");
-                return null;
-            }
         }
 
         private void HeroController_FixedUpdate(On.HeroController.orig_FixedUpdate orig, HeroController self)
@@ -402,7 +376,7 @@ namespace ReplayLogger
                 writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("\n\n"));
                 DamageAnfInv = new();
 
-                endMods = ModsChecking.ParsingMods(Mods, modsDir);
+                endMods = ModsChecking.ScanMods(modsDir);
                 foreach (string log in endMods)
                 {
                     writer?.WriteLine(log);

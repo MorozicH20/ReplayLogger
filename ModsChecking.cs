@@ -13,33 +13,108 @@ namespace ReplayLogger
 {
     internal static class ModsChecking
     {
-
-        public static List<string> ParsingMods(List<ModVersion> Mods, string modsDir)
+        public static List<string> ScanMods(string modsDir)
         {
-            List<string> strMods = new() { KeyloggerLogEncryption.EncryptLog(Modding.ModHooks.ModVersion) };
-            List<string> dirs = Directory.GetDirectories(modsDir).ToList();
-            dirs.Remove(Path.Combine(modsDir, "Disabled"));
-            dirs.Remove(Path.Combine(modsDir, "Vasi"));
+            List<string> modInfo = new() { KeyloggerLogEncryption.EncryptLog(Modding.ModHooks.ModVersion) };
+            List<string> unregisteredMods = new();
 
-            foreach (var mod in Mods)
+            List<string> modDirectories = Directory.GetDirectories(modsDir)
+             .Where(dir => !Path.GetFileName(dir).Equals("Disabled", StringComparison.OrdinalIgnoreCase) &&
+                            !Path.GetFileName(dir).Equals("Vasi", StringComparison.OrdinalIgnoreCase))
+             .ToList();
+
+            foreach (string modDirectory in modDirectories)
             {
-                strMods.Add(KeyloggerLogEncryption.EncryptLog($"{(mod.Name == ""||mod.Name==null ? "Modding API" : mod.Name)}|{mod.Version}|{mod.Hash}"));
-                dirs.RemoveAll(dir => Path.GetFileName(dir).Replace(" ", "").Replace("_", "").Equals(mod.Name.Replace(" ", "").Replace("_",""), StringComparison.OrdinalIgnoreCase));
+                try
+                {
+                    string[] dllFiles = Directory.GetFiles(modDirectory, "*.dll");
+
+                    if (dllFiles.Length > 0)
+                    {
+                        string modDllPath = dllFiles[0];
+
+                        try
+                        {
+                            Assembly modAssembly = Assembly.LoadFile(modDllPath);
+
+                            Type[] modTypes = modAssembly.GetTypes()
+                                .Where(t => typeof(Modding.IMod).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
+                                .ToArray();
+
+                            if (modTypes.Length > 0)
+                            {
+                                Type modType = modTypes[0];
+
+                                
+                                string modName = modType.Name;
+                                string modVersion = "Unknown";
+
+                                try
+                                {
+                                    object modInstance = Activator.CreateInstance(modType);
+
+                                    MethodInfo getVersionMethod = modType.GetMethod("GetVersion");
+
+                                    if (getVersionMethod != null)
+                                    {
+                                        object versionResult = getVersionMethod.Invoke(modInstance, null);
+
+                                        if (versionResult != null)
+                                        {
+                                            modVersion = versionResult.ToString();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Modding.Logger.LogError($"Warning: Mod class '{modType.FullName}' does not have a GetVersion method.");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Modding.Logger.LogError($"Error getting version from '{modType.FullName}': {ex.Message}");
+                                }
+
+
+                                string hash = CalculateSHA256(modDllPath);
+
+                                modInfo.Add(KeyloggerLogEncryption.EncryptLog($"{modName}|{modVersion}|{hash}"));
+                            }
+                            else
+                            {
+                                unregisteredMods.Add(modDirectory);
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Modding.Logger.LogError($"Error loading assembly {modDllPath}: {ex.Message}");
+                            unregisteredMods.Add(modDirectory);
+                        }
+                    }
+                    else
+                    {
+                        unregisteredMods.Add(modDirectory);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Modding.Logger.LogError($"Error processing directory {modDirectory}: {ex.Message}");
+                    unregisteredMods.Add(modDirectory);
+                }
             }
-            if (dirs.Count == 0)
+
+            if (unregisteredMods.Count == 0)
             {
-                return strMods;
+                return modInfo;
             }
             else
             {
-
                 List<string> EncDirs = new();
-                foreach (var dir in dirs)
+                foreach (var dir in unregisteredMods)
                 {
                     EncDirs.Add(KeyloggerLogEncryption.EncryptLog(dir));
                 }
-
-                List<string> report = [.. strMods, KeyloggerLogEncryption.EncryptLog("Обнаружены незарегистрированные модификации:"), .. EncDirs];
+                List<string> report = [.. modInfo, KeyloggerLogEncryption.EncryptLog("Обнаружены незарегистрированные модификации:"), .. EncDirs];
                 return report;
             }
         }
