@@ -39,6 +39,7 @@ namespace ReplayLogger
         private long startUnixTime;
 
         private bool isPlayChalange = false;
+        private int bossCounter;
 
         private List<string> startMods;
         private List<string> endMods;
@@ -179,7 +180,7 @@ namespace ReplayLogger
             var bossKeys = infoBoss.GetKeysWithUniqueGameObject().Values;
             foreach (var boss in infoBoss.Keys)
             {
-                if (!bossKeys.Contains(boss)&& !boss.isDead) continue;
+                if (!bossKeys.Contains(boss) && !boss.isDead) continue;
                 if (boss.hp != infoBoss[boss].lastHP)
                 {
                     infoBoss[boss] = (infoBoss[boss].maxHP, boss.hp);
@@ -248,6 +249,12 @@ namespace ReplayLogger
                             writer?.Flush();
 
                         }
+                        string listCharms = "\nEquipped charms => ";
+                        foreach (int numCharm in PlayerData.instance?.equippedCharms)
+                        {
+                            listCharms += (Charm)numCharm + ", ";
+                        }
+                        writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(listCharms+'\n'));
 
                     }
                     catch (Exception e)
@@ -281,13 +288,12 @@ namespace ReplayLogger
                     }
                     else
                     {
-                        List<string> skipScenes = new List<string> { "GG_Engine", "GG_Unn", "GG_Engine_Root", "GG_Wyrm" };
 
                         int targetIndex = currentPanteon.list.IndexOf((self.TargetSceneName));
                         int lastSceneIndex = currentPanteon.list.IndexOf(lastScene);
 
 
-                        if (targetIndex == -1 || (lastSceneIndex != -1 && !(IsValidNextScene(currentPanteon.list, lastSceneIndex, self.TargetSceneName, skipScenes))))
+                        if (targetIndex == -1 || (lastSceneIndex != -1 && !(IsValidNextScene(currentPanteon.list, lastSceneIndex, self.TargetSceneName))))
                         {
                             Close();
                         }
@@ -298,11 +304,15 @@ namespace ReplayLogger
 
 
                     }
+                    List<string> skipScenes = new List<string> { "GG_Spa", "GG_Engine", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Engine_Prime" };
+
+                    if (!skipScenes.Contains(self.TargetSceneName))
+                        bossCounter++;
 
                     StartLoad();
-                    DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|"));
+                    DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}{((!skipScenes.Contains(self.TargetSceneName))?$"| *{bossCounter}":"")}"));
 
-                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|{{sprite}}"));
+                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|{{sprite}}{self.TargetSceneName}{((!skipScenes.Contains(self.TargetSceneName)) ? $"| *{bossCounter}" : "")}"));
                     writer?.Flush();
 
                 }
@@ -314,11 +324,11 @@ namespace ReplayLogger
             lastScene = self.TargetSceneName;
             orig(self);
         }
-        private bool IsValidNextScene(List<string> panteonList, int lastSceneIndex, string targetSceneName, List<string> skipScenes)
+        private bool IsValidNextScene(List<string> panteonList, int lastSceneIndex, string targetSceneName)
         {
             int nextIndex = lastSceneIndex + 1;
 
-            if(nextIndex>=panteonList.Count) return false;
+            if (nextIndex >= panteonList.Count) return false;
 
             string expectedNextScene = panteonList[nextIndex];
 
@@ -394,6 +404,7 @@ namespace ReplayLogger
                     File.Move(currentNameLog, newPath);
                 CleanupOldLogFiles();
             }
+            bossCounter = 0;
             startUnixTime = 0;
             isPlayChalange = false;
             customCanvas?.DestroyCanvas();
