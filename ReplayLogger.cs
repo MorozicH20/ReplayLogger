@@ -237,22 +237,13 @@ namespace ReplayLogger
                             writer?.Flush();
 
                         }
-                        if (BossSequenceController.BoundCharms)
+                        string listCharms = "\nEquipped charms => ";
+                        foreach (int numCharm in PlayerData.instance?.equippedCharms)
                         {
-                            string listCharms = "\nEquipped charms => BOUND CHARMS";
-                            writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(listCharms + '\n'));
-
+                            listCharms += (Charm)numCharm + ", ";
                         }
-                        else
-                        {
+                        writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(listCharms + (BossSequenceController.BoundCharms ? " => BOUND CHARMS" : "") + '\n'));
 
-                            string listCharms = "\nEquipped charms => ";
-                            foreach (int numCharm in PlayerData.instance?.equippedCharms)
-                            {
-                                listCharms += (Charm)numCharm + ", ";
-                            }
-                            writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(listCharms + '\n'));
-                        }
 
                     }
                     catch (Exception e)
@@ -316,7 +307,7 @@ namespace ReplayLogger
 
 
                     }
-                    List<string> skipScenes = new List<string> { "GG_Spa", "GG_Engine", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Engine_Prime" };
+                    List<string> skipScenes = new List<string> { "GG_Spa", "GG_Engine", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Engine_Prime", "GG_Atrium_Roof" };
 
                     if (!skipScenes.Contains(self.TargetSceneName))
                         bossCounter++;
