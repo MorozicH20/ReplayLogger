@@ -1,22 +1,13 @@
 ﻿using GlobalEnums;
-using HutongGames.PlayMaker;
-using IL;
-using InControl;
 using Modding;
-using Newtonsoft.Json;
 using On;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
-using UnityEngine.UIElements;
-using static System.Runtime.CompilerServices.RuntimeHelpers;
-using static UnityEngine.Networking.UnityWebRequest;
 using UObject = UnityEngine.Object;
 
 
@@ -231,10 +222,7 @@ namespace ReplayLogger
 
                 if (self.TargetSceneName.Contains("GG_Boss_Door") || (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof"))
                 {
-                    if (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof")
-                    {
-                        currentPanteon = ("P5", Panteons.P5.ToList());
-                    }
+
                     startUnixTime = lastUnixTime;
                     int curentPlayTime = (int)(PlayerData.instance.playTime * 100);
                     isPlayChalange = true;
@@ -249,12 +237,22 @@ namespace ReplayLogger
                             writer?.Flush();
 
                         }
-                        string listCharms = "\nEquipped charms => ";
-                        foreach (int numCharm in PlayerData.instance?.equippedCharms)
+                        if (BossSequenceController.BoundCharms)
                         {
-                            listCharms += (Charm)numCharm + ", ";
+                            string listCharms = "\nEquipped charms => BOUND CHARMS";
+                            writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(listCharms + '\n'));
+
                         }
-                        writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(listCharms+'\n'));
+                        else
+                        {
+
+                            string listCharms = "\nEquipped charms => ";
+                            foreach (int numCharm in PlayerData.instance?.equippedCharms)
+                            {
+                                listCharms += (Charm)numCharm + ", ";
+                            }
+                            writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(listCharms + '\n'));
+                        }
 
                     }
                     catch (Exception e)
@@ -265,9 +263,23 @@ namespace ReplayLogger
                     int seed = (int)(lastUnixTime ^ curentPlayTime);
 
                     customCanvas = new CustomCanvas(new NumberInCanvas(seed), new LoadingSprite(lastString));
-                    DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|"));
 
-                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{curentPlayTime}|{self.TargetSceneName}|"));
+                    if (self.TargetSceneName.Contains("GG_Vengefly_V") && lastScene == "GG_Atrium_Roof")
+                    {
+                        currentPanteon = ("P5", Panteons.P5.ToList());
+                        bossCounter++;
+
+                        DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}| *{bossCounter}"));
+
+                        writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{curentPlayTime}|{self.TargetSceneName}| *{bossCounter}"));
+                    }
+                    else
+                    {
+
+                        DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|"));
+
+                        writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{curentPlayTime}|{self.TargetSceneName}|"));
+                    }
                     writer?.Flush();
 
 
@@ -310,7 +322,7 @@ namespace ReplayLogger
                         bossCounter++;
 
                     StartLoad();
-                    DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}{((!skipScenes.Contains(self.TargetSceneName))?$"| *{bossCounter}":"")}"));
+                    DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}{((!skipScenes.Contains(self.TargetSceneName)) ? $"| *{bossCounter}" : "")}"));
 
                     writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|{{sprite}}{self.TargetSceneName}{((!skipScenes.Contains(self.TargetSceneName)) ? $"| *{bossCounter}" : "")}"));
                     writer?.Flush();
