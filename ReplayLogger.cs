@@ -344,36 +344,42 @@ namespace ReplayLogger
 
             return expectedNextScene == targetSceneName;
         }
-        private void CleanupOldLogFiles()
-        {
-            try
-            {
-                DirectoryInfo directory = new DirectoryInfo(dllDir);
-                FileInfo[] logFiles = directory.GetFiles($"P*.log")
-                                              .OrderBy(f => f.CreationTimeUtc)
-                                              .ToArray();
 
-                int filesToDelete = logFiles.Length - 10;
-                if (filesToDelete > 0)
-                {
-                    for (int i = 0; i < filesToDelete; i++)
-                    {
-                        try
-                        {
-                            File.Delete(logFiles[i].FullName);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error deleting old log file {logFiles[i].Name}: {ex.Message}");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error cleaning up old log files: {ex.Message}");
-            }
-        }
+
+        //Remove
+
+        //private void CleanupOldLogFiles()
+        //{
+        //    try
+        //    {
+        //        DirectoryInfo directory = new DirectoryInfo(dllDir);
+        //        FileInfo[] logFiles = directory.GetFiles($"P*.log")
+        //                                      .OrderBy(f => f.CreationTimeUtc)
+        //                                      .ToArray();
+
+        //        int filesToDelete = logFiles.Length - 10;
+        //        if (filesToDelete > 0)
+        //        {
+        //            for (int i = 0; i < filesToDelete; i++)
+        //            {
+        //                try
+        //                {
+        //                    File.Delete(logFiles[i].FullName);
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    Console.WriteLine($"Error deleting old log file {logFiles[i].Name}: {ex.Message}");
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Error cleaning up old log files: {ex.Message}");
+        //    }
+        //}
+
+
         private void Close()
         {
             if (writer != null)
@@ -401,11 +407,21 @@ namespace ReplayLogger
                 writer.Close();
                 writer = null;
 
+
+                string panteonDir = Path.Combine(dllDir, currentPanteon.name);
+                if (!Directory.Exists(panteonDir))
+                {
+                    Directory.CreateDirectory(panteonDir);
+                }
+
+
                 string dataTimeNow = DateTimeOffset.FromUnixTimeMilliseconds(lastUnixTime).ToLocalTime().ToString("dd-MM-yyyy HH-mm-ss");
-                string newPath = Path.Combine(dllDir, $"{currentPanteon.name} ({dataTimeNow}).log");
+                string newPath = Path.Combine(panteonDir, $"{currentPanteon.name} ({dataTimeNow}).log");
+
                 if (File.Exists(currentNameLog))
+                {
                     File.Move(currentNameLog, newPath);
-                CleanupOldLogFiles();
+                }
             }
             bossCounter = 0;
             startUnixTime = 0;
