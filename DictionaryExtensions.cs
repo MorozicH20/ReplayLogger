@@ -9,13 +9,13 @@ namespace ReplayLogger
 {
     public static class DictionaryExtensions
     {
-        /// <summary>
-        /// Создает новый список (HealthManager), 
-        ///  в котором для каждого GameObject остается только один HealthManager.
-        ///  Если у GameObject несколько HealthManager, выбирается последний добавленный.
-        /// </summary>
-        /// <param name="dictionary">Исходный словарь.</param>
-        /// <returns>Новый список ключей (HealthManager), где на каждый GameObject приходится только один HealthManager.</returns>
+        
+        
+        
+        
+        
+        
+        
         public static Dictionary<GameObject, HealthManager> GetKeysWithUniqueGameObject(this Dictionary<HealthManager, (int maxHP, int lastHP)> dictionary)
         {
             Dictionary<GameObject, HealthManager> lastHealthManagers = new Dictionary<GameObject, HealthManager>();
