@@ -41,83 +41,6 @@ namespace ReplayLogger
         public ReplayLogger() : base(ModInfo.Name) { }
         public override string GetVersion() => ModInfo.Version;
 
-        //public override List<(string, string)> GetPreloadNames()
-        //{
-        //    return new List<(string, string)>
-        //{
-        //    ("GG_Vengefly_V", "Boss Holder/Vengefly King"),
-        //    ("GG_Vengefly", "Boss Holder/Vengefly King"),
-        //    ("GG_Gruz_Mother_V", "Boss Holder/Gruz Mother"),
-        //    ("GG_Gruz_Mother", "Boss Holder/Gruz Mother"),
-        //    ("GG_False_Knight", "Boss Holder/False Knight"),
-        //    ("GG_Mega_Moss_Charger", "Boss Holder/Mega Moss Charger"),
-        //    ("GG_Hornet_1", "Boss Holder/Hornet Boss 1"),
-        //    ("GG_Ghost_Gorb_V", "Boss Holder/Ghost Gorb"),
-        //    ("GG_Ghost_Gorb", "Boss Holder/Ghost Gorb"),
-        //    ("GG_Dung_Defender", "Boss Holder/Dung Defender"),
-        //    ("GG_Mage_Knight_V", "Boss Holder/Soul Warrior"),
-        //    ("GG_Mage_Knight", "Boss Holder/Soul Warrior"),
-        //    ("GG_Brooding_Mawlek_V", "Boss Holder/Brooding Mawlek"),
-        //    ("GG_Brooding_Mawlek", "Boss Holder/Brooding Mawlek"),
-        //    ("GG_Nailmasters", "Boss Holder/Nailmasters"),
-        //    ("GG_Ghost_Xero_V", "Boss Holder/Ghost Xero"),
-        //    ("GG_Ghost_Xero", "Boss Holder/Ghost Xero"),
-        //    ("GG_Crystal_Guardian", "Boss Holder/Crystal Guardian"),
-        //    ("GG_Soul_Master", "Boss Holder/Soul Master"),
-        //    ("GG_Oblobbles", "Boss Holder/Oblobbles"),
-        //    ("GG_Mantis_Lords_V", "Boss Holder/Mantis Lords"),
-        //    ("GG_Mantis_Lords", "Boss Holder/Mantis Lords"),
-        //    ("GG_Ghost_Marmu_V", "Boss Holder/Ghost Marmu"),
-        //    ("GG_Ghost_Marmu", "Boss Holder/Ghost Marmu"),
-        //    ("GG_Flukemarm", "Boss Holder/Flukemarm"),
-        //    ("GG_Broken_Vessel", "Boss Holder/Broken Vessel"),
-        //    ("GG_Ghost_Galien", "Boss Holder/Ghost Galien"),
-        //    ("GG_Painter", "Boss Holder/Painter"),
-        //    ("GG_Hive_Knight", "Boss Holder/Hive Knight"),
-        //    ("GG_Ghost_Hu", "Boss Holder/Ghost Hu"),
-        //    ("GG_Collector_V", "Boss Holder/Collector"),
-        //    ("GG_Collector", "Boss Holder/Collector"),
-        //    ("GG_God_Tamer", "Boss Holder/God Tamer"),
-        //    ("GG_Grimm", "Boss Holder/Grimm"),
-        //    ("GG_Watcher_Knights", "Boss Holder/Watcher Knights"),
-        //    ("GG_Uumuu_V", "Boss Holder/Uumuu"),
-        //    ("GG_Uumuu", "Boss Holder/Uumuu"),
-        //    ("GG_Nosk_Hornet", "Boss Holder/Nosk Hornet"),
-        //    ("GG_Sly", "Boss Holder/Sly"),
-        //    ("GG_Hornet_2", "Boss Holder/Hornet Boss 2"),
-        //    ("GG_Crystal_Guardian_2", "Boss Holder/Crystal Guardian 2"),
-        //    ("GG_Lost_Kin", "Boss Holder/Lost Kin"),
-        //    ("GG_Ghost_No_Eyes_V", "Boss Holder/Ghost No Eyes"),
-        //    ("GG_Ghost_No_Eyes", "Boss Holder/Ghost No Eyes"),
-        //    ("GG_Traitor_Lord", "Boss Holder/Traitor Lord"),
-        //    ("GG_White_Defender", "Boss Holder/White Defender"),
-        //    ("GG_Soul_Tyrant", "Boss Holder/Soul Tyrant"),
-        //    ("GG_Ghost_Markoth_V", "Boss Holder/Ghost Markoth"),
-        //    ("GG_Ghost_Markoth", "Boss Holder/Ghost Markoth"),
-        //    ("GG_Grey_Prince_Zote", "Boss Holder/Grey Prince Zote"),
-        //    ("GG_Failed_Champion", "Boss Holder/Failed Champion"),
-        //    ("GG_Grimm_Nightmare", "Boss Holder/Nightmare Grimm"),
-        //    ("GG_Hollow_Knight", "Boss Holder/Hollow Knight"),
-        //    ("GG_Radiance", "Boss Holder/The Radiance")
-        //};
-        //}
-
-        //private List<HealthManager> lastHealthManagers = new();
-
-        //public override void Initialize(Dictionary<string, Dictionary<string, GameObject>> preloadedObjects)
-        //{
-        //    foreach(var preloadedObject in preloadedObjects.Values)
-        //    {
-        //        foreach (var obj in preloadedObject.Values)
-        //        {
-        //            HealthManager HM;
-        //            if (obj.TryGetComponent(out HM))
-        //            {
-        //                lastHealthManagers.Add(HM);
-        //            }
-        //        }
-        //    }
-        //}
         public override void Initialize()
         {
             Instance = this;
@@ -253,7 +176,6 @@ namespace ReplayLogger
                 {
                     if (healthManager != null && healthManager.hp > 0 && !infoBoss.ContainsKey(healthManager))
                     {
-                        Modding.Logger.Log($"{healthManager.gameObject.tag}, {healthManager.gameObject.layer} => {LayerMask.LayerToName(healthManager.gameObject.layer)}, path:{healthManager.gameObject.GetFullPath()}");
                         infoBoss.Add(healthManager, (healthManager.hp, 0));
 
                     }
