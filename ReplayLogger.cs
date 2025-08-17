@@ -1,16 +1,19 @@
 ﻿using GlobalEnums;
+using IL;
 using Modding;
 using On;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UObject = UnityEngine.Object;
-
 
 namespace ReplayLogger
 {
@@ -38,6 +41,14 @@ namespace ReplayLogger
 
         private List<string> DamageAnfInv;
 
+        private Dictionary<string, HashSet<int>> damageValuesByOwner = new Dictionary<string, HashSet<int>>();
+
+
+        private Dictionary<string, HashSet<float>> multiplierValuesByOwner = new Dictionary<string, HashSet<float>>();
+
+        private List<string> ChangeDamageOrMultiplier;
+
+
         public ReplayLogger() : base(ModInfo.Name) { }
         public override string GetVersion() => ModInfo.Version;
 
@@ -50,8 +61,11 @@ namespace ReplayLogger
             On.QuitToMenu.Start += QuitToMenu_Start;
             On.BossSceneController.Update += BossSceneController_Update;
             On.HeroController.FixedUpdate += HeroController_FixedUpdate;
-
             On.SceneLoad.RecordEndTime += SceneLoad_RecordEndTime;
+
+            ModHooks.HitInstanceHook += ModHooks_HitInstanceHook;
+            
+            On.BossSequenceController.FinishLastBossScene += BossSequenceController_FinishLastBossScene;
 
             dllDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             modsDir = new DirectoryInfo(dllDir).Parent.FullName;
@@ -63,10 +77,58 @@ namespace ReplayLogger
             CustomCanvas.flagSpriteFalse = CustomCanvas.LoadEmbeddedSprite("Geo.png");
             CustomCanvas.flagSpriteTrue = CustomCanvas.LoadEmbeddedSprite("ElegantKey.png");
 
-
             startMods = ModsChecking.ScanMods(modsDir);
             endMods = new();
             DamageAnfInv = new();
+            ChangeDamageOrMultiplier = new();
+        }
+
+        string isСhallengeСompleted = "Complite?: -";
+        private void BossSequenceController_FinishLastBossScene(On.BossSequenceController.orig_FinishLastBossScene orig, BossSceneController self)
+        {
+            isСhallengeСompleted = "Complite?: +";
+            orig(self);
+        }
+
+
+
+        private HitInstance ModHooks_HitInstanceHook(HutongGames.PlayMaker.Fsm owner, HitInstance hit)
+        {
+            long unixTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            string ownerName = owner.GameObject.GetFullPath();
+
+            if (owner == null || owner.GameObject == null)
+            {
+                return hit;
+            }
+
+            if (!damageValuesByOwner.ContainsKey(ownerName))
+            {
+                damageValuesByOwner[ownerName] = new HashSet<int>();
+            }
+
+            if (!multiplierValuesByOwner.ContainsKey(ownerName))
+            {
+                multiplierValuesByOwner[ownerName] = new HashSet<float>();
+            }
+
+            bool newDamage = damageValuesByOwner[ownerName].Add(hit.DamageDealt);
+            if (newDamage)
+            {
+                ChangeDamageOrMultiplier.Add($"Add NEW unique damage: {ownerName}-{lastScene}/{unixTime - lastUnixTime} #{hit.DamageDealt}");
+            }
+
+            bool newMultiplier = multiplierValuesByOwner[ownerName].Add(hit.Multiplier);
+            if (newMultiplier)
+            {
+
+                ChangeDamageOrMultiplier.Add($"Add NEW unique multiplier: {ownerName}-{lastScene}/{unixTime - lastUnixTime} #{hit.Multiplier}");
+
+            }
+
+            return hit;
+
+
         }
 
         private void SceneLoad_RecordEndTime(On.SceneLoad.orig_RecordEndTime orig, SceneLoad self, SceneLoad.Phases phase)
@@ -120,7 +182,7 @@ namespace ReplayLogger
                 {
                     hpInfo += $"|{infoBoss[kvp].lastHP}/{infoBoss[kvp].maxHP}";
                 }
-                DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|(INV ON)|"));
+                DamageAnfInv.Add($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|(INV ON)|");
             }
 
             if (!shouldBeInvincible && isInvincible)
@@ -133,7 +195,7 @@ namespace ReplayLogger
                     hpInfo += $"|{infoBoss[kvp].lastHP}/{infoBoss[kvp].maxHP}";
 
                 }
-                DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|(INV OFF, {invTimer.ToString("F3")})|"));
+                DamageAnfInv.Add($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|(INV OFF, {invTimer.ToString("F3")})|");
                 invTimer = 0f;
             }
 
@@ -142,7 +204,7 @@ namespace ReplayLogger
         }
 
         bool isChange;
-      
+
         public void EnemyUpdate()
         {
             if (!isPlayChalange) return;
@@ -166,6 +228,7 @@ namespace ReplayLogger
                     {
                         healthManagers.Add(healthManager);
                     }
+
                 }
             }
 
@@ -331,7 +394,7 @@ namespace ReplayLogger
 
 
                     }
-                    List<string> skipScenes = new List<string> { "GG_Spa", "GG_Engine", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Engine_Prime", "GG_Atrium_Roof" };
+                    List<string> skipScenes = new List<string> { "GG_Spa", "GG_Engine", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Engine_Prime", "GG_Atrium", "GG_Atrium_Roof" };
 
                     if (!skipScenes.Contains(self.TargetSceneName))
                         bossCounter++;
@@ -369,90 +432,219 @@ namespace ReplayLogger
             return expectedNextScene == targetSceneName;
         }
 
+        public static string ConvertUnixTimeToDateTimeString(long unixTimeMilliseconds)
+        {
+            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(unixTimeMilliseconds);
 
+            string dateTimeString = dateTimeOffset.ToString("dd.MM.yyyy HH:mm:ss.fff");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            return dateTimeString;
+        }
         private void Close()
         {
-            if (writer != null)
+            try
             {
-                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("\n------------------------DAMAGE INV------------------------\n"));
-
-                foreach (string log in DamageAnfInv)
+                if (writer != null)
                 {
-                    writer?.WriteLine(log);
-                    writer?.Flush();
+                    long EndTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+                    writer.WriteLine(KeyloggerLogEncryption.EncryptLog($"StartTime: {ConvertUnixTimeToDateTimeString(startUnixTime)}, EndTime: {ConvertUnixTimeToDateTimeString(EndTime)}, TimeInPlay: {ConvertUnixTimeToDateTimeString(EndTime - startUnixTime)}"));
 
+                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("\n------------------------DAMAGE INV------------------------\n"));
+
+                    foreach (string log in DamageAnfInv)
+                    {
+                        writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(log));
+                        writer?.Flush();
+
+                    }
+                    writer.WriteLine(KeyloggerLogEncryption.EncryptLog($"StartTime: {ConvertUnixTimeToDateTimeString(startUnixTime)}, EndTime: {ConvertUnixTimeToDateTimeString(EndTime)}, TimeInPlay: {ConvertUnixTimeToDateTimeString(EndTime - startUnixTime)}"));
+                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("\n\n"));
+
+                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("Warnings:"));
+                    foreach (string warning in ParseLogs(DamageAnfInv))
+                    {
+                        writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(warning));
+                    }
+
+                    DamageAnfInv = new();
+
+                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("DamageChange:"));
+
+                    foreach (var entry in SortLogsByObjectName(ChangeDamageOrMultiplier))
+                    {
+                        writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{entry.Key}:"));
+                        foreach (string log in entry.Value)
+                        {
+                            writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"  {log}"));
+                        }
+                    }
+                    damageValuesByOwner = new Dictionary<string, HashSet<int>>();
+
+                    multiplierValuesByOwner = new Dictionary<string, HashSet<float>>();
+
+                    ChangeDamageOrMultiplier = new();
+                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog('\n' + isСhallengeСompleted + '\n'));
+                    isСhallengeСompleted = "Complite?: -";
+
+                    endMods = ModsChecking.ScanMods(modsDir);
+                    foreach (string log in endMods)
+                    {
+                        writer?.WriteLine(log);
+                        writer?.Flush();
+
+                    }
+
+                    writer.Write(lastString);
+                    writer.Flush();
+                    writer.Close();
+                    writer = null;
+
+
+                    string panteonDir = Path.Combine(dllDir, currentPanteon.name);
+                    if (!Directory.Exists(panteonDir))
+                    {
+                        Directory.CreateDirectory(panteonDir);
+                    }
+
+
+                    string dataTimeNow = DateTimeOffset.FromUnixTimeMilliseconds(lastUnixTime).ToLocalTime().ToString("dd-MM-yyyy HH-mm-ss");
+                    string newPath = Path.Combine(panteonDir, $"{currentPanteon.name} ({dataTimeNow}).log");
+
+                    if (File.Exists(currentNameLog))
+                    {
+                        File.Move(currentNameLog, newPath);
+                    }
                 }
-                writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("\n\n"));
-                DamageAnfInv = new();
+                bossCounter = 0;
+                startUnixTime = 0;
+                isPlayChalange = false;
+                customCanvas?.DestroyCanvas();
+                currentPanteon = (null, null);
+            }
+            catch(Exception ex)
+            {
+                Modding.Logger.Log(ex.Message);
+            }
+        }
 
-                endMods = ModsChecking.ScanMods(modsDir);
-                foreach (string log in endMods)
+        private static string ExtractObjectName(string log)
+        {
+            string pattern = @"^Add NEW unique (?:damage|multiplier): (.*?)-";
+            Match match = Regex.Match(log, pattern);
+
+            if (match.Success)
+            {
+                return match.Groups[1].Value.Trim();
+            }
+            return null;
+        }
+
+        public static Dictionary<string, List<string>> SortLogsByObjectName(List<string> logs)
+        {
+            Dictionary<string, List<string>> sortedLogs = new Dictionary<string, List<string>>();
+
+            foreach (string log in logs)
+            {
+                string objectName = ExtractObjectName(log);
+
+                if (objectName != null)
                 {
-                    writer?.WriteLine(log);
-                    writer?.Flush();
-
-                }
-                writer.Write(lastString);
-                writer.Flush();
-                writer.Close();
-                writer = null;
-
-
-                string panteonDir = Path.Combine(dllDir, currentPanteon.name);
-                if (!Directory.Exists(panteonDir))
-                {
-                    Directory.CreateDirectory(panteonDir);
-                }
-
-
-                string dataTimeNow = DateTimeOffset.FromUnixTimeMilliseconds(lastUnixTime).ToLocalTime().ToString("dd-MM-yyyy HH-mm-ss");
-                string newPath = Path.Combine(panteonDir, $"{currentPanteon.name} ({dataTimeNow}).log");
-
-                if (File.Exists(currentNameLog))
-                {
-                    File.Move(currentNameLog, newPath);
+                    if (sortedLogs.ContainsKey(objectName))
+                    {
+                        sortedLogs[objectName].Add(log);
+                    }
+                    else
+                    {
+                        sortedLogs[objectName] = new List<string> { log };
+                    }
                 }
             }
-            bossCounter = 0;
-            startUnixTime = 0;
-            isPlayChalange = false;
-            customCanvas?.DestroyCanvas();
-            currentPanteon = (null, null);
+
+            return sortedLogs;
         }
+
+        public static List<string> ParseLogs(List<string> logs)
+        {
+            string currentScene = null;
+            long currentSceneStartTime = 0;
+            float invOffThreshold = 2.6f;
+            List<string> warnings = new List<string>();
+
+            foreach (string log in logs)
+            {
+                if (Regex.IsMatch(log, @"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}\.\d{3}\|\d+\|.*$"))
+                {
+                    string[] parts = log.Split('|');
+                    if (parts.Length >= 3)
+                    {
+                        currentScene = parts[2].Trim();
+
+                        if (long.TryParse(parts[1], out long sceneTime))
+                        {
+                            currentSceneStartTime = sceneTime;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Не удалось распарсить Unix Time для сцены: {log}");
+                            currentSceneStartTime = 0; 
+                        }
+                    }
+                }
+                else if (log.Contains("(INV OFF,"))
+                {
+                    float invOffTime = ExtractInvOffTime(log);
+                    if (invOffTime > invOffThreshold)
+                    {
+                        string formattedLog = log.Replace("\n", "").Replace("\r", "");
+
+                        long logTime = ExtractLogTime(log);
+                        double timeSinceSceneStart = (logTime - currentSceneStartTime) / 1000.0;
+
+                        string warning = $"|{currentScene}| {formattedLog}  (Relative Time: {timeSinceSceneStart:F3} seconds)";
+                        warnings.Add(warning);
+                    }
+                }
+
+            }
+
+            return warnings;
+
+        }
+
+        private static float ExtractInvOffTime(string log)
+        {
+            string pattern = @"\(INV OFF,\s*(\d+(\.\d+)?)\s*\)";
+            Match match = Regex.Match(log, pattern);
+
+            if (match.Success)
+            {
+                string timeString = match.Groups[1].Value;
+                if (float.TryParse(timeString, NumberStyles.Float, CultureInfo.InvariantCulture, out float time))
+                {
+                    return time;
+                }
+            }
+
+            return 0f;
+        }
+
+        private static long ExtractLogTime(string log)
+        {
+            string pattern = @"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}\.\d{3}\|(\d+)\|.*$";
+            Match match = Regex.Match(log, pattern);
+
+            if (match.Success)
+            {
+                string timeString = match.Groups[1].Value;
+                if (long.TryParse(timeString, out long time))
+                {
+                    return time;
+                }
+            }
+
+            return 0;
+        }
+
 
         float lastFps = 0f;
         private void CheckPressedKey(On.GameManager.orig_Update orig, GameManager self)
