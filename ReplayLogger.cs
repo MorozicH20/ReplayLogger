@@ -41,6 +41,8 @@ namespace ReplayLogger
 
         private List<string> DamageAnfInv;
 
+        private List<string> InvWarn;
+
         private Dictionary<string, HashSet<int>> damageValuesByOwner = new Dictionary<string, HashSet<int>>();
 
 
@@ -80,13 +82,14 @@ namespace ReplayLogger
             startMods = ModsChecking.ScanMods(modsDir);
             endMods = new();
             DamageAnfInv = new();
+            InvWarn = new();
             ChangeDamageOrMultiplier = new();
         }
 
-        string isСhallengeСompleted = "Complite?: -";
+        string isСhallengeСompleted = "-";
         private void BossSequenceController_FinishLastBossScene(On.BossSequenceController.orig_FinishLastBossScene orig, BossSceneController self)
         {
-            isСhallengeСompleted = "Complite?: +";
+            isСhallengeСompleted = "+";
             orig(self);
         }
 
@@ -153,7 +156,6 @@ namespace ReplayLogger
         }
 
         Dictionary<HealthManager, (int maxHP, int lastHP)> infoBoss = new();
-        Dictionary<GameObject, Dictionary<HealthManager, (int maxHP, int lastHP)>> unicBoss = new();
         bool isInvincible = false;
         float invTimer;
 
@@ -196,6 +198,12 @@ namespace ReplayLogger
 
                 }
                 DamageAnfInv.Add($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|(INV OFF, {invTimer.ToString("F3")})|");
+                if (invTimer > 2.6f)
+                {
+                    string warning = $"|{lastScene}|+{unixTime - lastUnixTime}{hpInfo}|(INV OFF, {invTimer.ToString("F3")})";
+
+                    InvWarn.Add(warning);
+                }
                 invTimer = 0f;
             }
 
@@ -267,7 +275,7 @@ namespace ReplayLogger
 
             if (isChange)
             {
-                DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|"));
+                DamageAnfInv.Add($"\u00A0+{unixTime - lastUnixTime}{hpInfo}|");
             }
             isChange = false;
 
@@ -347,14 +355,14 @@ namespace ReplayLogger
                         currentPanteon = ("P5", Panteons.P5.ToList());
                         bossCounter++;
 
-                        DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}| {bossCounter}*"));
+                        DamageAnfInv.Add($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}| {bossCounter}*");
 
                         writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{curentPlayTime}|{self.TargetSceneName}| {bossCounter}*"));
                     }
                     else
                     {
 
-                        DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|"));
+                        DamageAnfInv.Add($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|");
 
                         writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{curentPlayTime}|{self.TargetSceneName}|"));
                     }
@@ -400,7 +408,7 @@ namespace ReplayLogger
                         bossCounter++;
 
                     StartLoad();
-                    DamageAnfInv.Add(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}{((!skipScenes.Contains(self.TargetSceneName)) ? $"| {bossCounter}*" : "")}"));
+                    DamageAnfInv.Add($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}{((!skipScenes.Contains(self.TargetSceneName)) ? $"| {bossCounter}*" : "")}");
 
                     writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"{dataTime}|{lastUnixTime}|{self.TargetSceneName}|{{sprite}}{self.TargetSceneName}{((!skipScenes.Contains(self.TargetSceneName)) ? $"| {bossCounter}*" : "")}"));
                     writer?.Flush();
@@ -440,6 +448,14 @@ namespace ReplayLogger
 
             return dateTimeString;
         }
+        public static string ConvertUnixTimeToTimeString(long unixTimeMilliseconds)
+        {
+            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(unixTimeMilliseconds);
+
+            string dateTimeString = dateTimeOffset.ToString("HH:mm:ss.fff");
+
+            return dateTimeString;
+        }
         private void Close()
         {
             try
@@ -457,16 +473,20 @@ namespace ReplayLogger
                         writer?.Flush();
 
                     }
-                    writer.WriteLine(KeyloggerLogEncryption.EncryptLog($"StartTime: {ConvertUnixTimeToDateTimeString(startUnixTime)}, EndTime: {ConvertUnixTimeToDateTimeString(EndTime)}, TimeInPlay: {ConvertUnixTimeToDateTimeString(EndTime - startUnixTime)}"));
+                    DamageAnfInv = new();
+
+                    writer.WriteLine(KeyloggerLogEncryption.EncryptLog($"StartTime: {ConvertUnixTimeToDateTimeString(startUnixTime)}, EndTime: {ConvertUnixTimeToDateTimeString(EndTime)}, TimeInPlay: {ConvertUnixTimeToTimeString(EndTime - startUnixTime)}"));
                     writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("\n\n"));
 
                     writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("Warnings:"));
-                    foreach (string warning in ParseLogs(DamageAnfInv))
+                    foreach (string warning in InvWarn)
                     {
                         writer?.WriteLine(KeyloggerLogEncryption.EncryptLog(warning));
                     }
 
-                    DamageAnfInv = new();
+                    InvWarn = new();
+
+                    writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("\n\n"));
 
                     writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("DamageChange:"));
 
@@ -477,6 +497,9 @@ namespace ReplayLogger
                         {
                             writer?.WriteLine(KeyloggerLogEncryption.EncryptLog($"  {log}"));
                         }
+                        writer?.WriteLine(KeyloggerLogEncryption.EncryptLog("\n"));
+
+
                     }
                     damageValuesByOwner = new Dictionary<string, HashSet<int>>();
 
@@ -484,7 +507,6 @@ namespace ReplayLogger
 
                     ChangeDamageOrMultiplier = new();
                     writer?.WriteLine(KeyloggerLogEncryption.EncryptLog('\n' + isСhallengeСompleted + '\n'));
-                    isСhallengeСompleted = "Complite?: -";
 
                     endMods = ModsChecking.ScanMods(modsDir);
                     foreach (string log in endMods)
@@ -508,13 +530,14 @@ namespace ReplayLogger
 
 
                     string dataTimeNow = DateTimeOffset.FromUnixTimeMilliseconds(lastUnixTime).ToLocalTime().ToString("dd-MM-yyyy HH-mm-ss");
-                    string newPath = Path.Combine(panteonDir, $"{currentPanteon.name} ({dataTimeNow}).log");
+                    string newPath = Path.Combine(panteonDir, $"{isСhallengeСompleted}{currentPanteon.name} ({dataTimeNow}).log");
 
                     if (File.Exists(currentNameLog))
                     {
                         File.Move(currentNameLog, newPath);
                     }
                 }
+                isСhallengeСompleted = "-";
                 bossCounter = 0;
                 startUnixTime = 0;
                 isPlayChalange = false;
@@ -561,88 +584,6 @@ namespace ReplayLogger
             }
 
             return sortedLogs;
-        }
-
-        public static List<string> ParseLogs(List<string> logs)
-        {
-            string currentScene = null;
-            long currentSceneStartTime = 0;
-            float invOffThreshold = 2.6f;
-            List<string> warnings = new List<string>();
-
-            foreach (string log in logs)
-            {
-                if (Regex.IsMatch(log, @"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}\.\d{3}\|\d+\|.*$"))
-                {
-                    string[] parts = log.Split('|');
-                    if (parts.Length >= 3)
-                    {
-                        currentScene = parts[2].Trim();
-
-                        if (long.TryParse(parts[1], out long sceneTime))
-                        {
-                            currentSceneStartTime = sceneTime;
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Не удалось распарсить Unix Time для сцены: {log}");
-                            currentSceneStartTime = 0; 
-                        }
-                    }
-                }
-                else if (log.Contains("(INV OFF,"))
-                {
-                    float invOffTime = ExtractInvOffTime(log);
-                    if (invOffTime > invOffThreshold)
-                    {
-                        string formattedLog = log.Replace("\n", "").Replace("\r", "");
-
-                        long logTime = ExtractLogTime(log);
-                        double timeSinceSceneStart = (logTime - currentSceneStartTime) / 1000.0;
-
-                        string warning = $"|{currentScene}| {formattedLog}  (Relative Time: {timeSinceSceneStart:F3} seconds)";
-                        warnings.Add(warning);
-                    }
-                }
-
-            }
-
-            return warnings;
-
-        }
-
-        private static float ExtractInvOffTime(string log)
-        {
-            string pattern = @"\(INV OFF,\s*(\d+(\.\d+)?)\s*\)";
-            Match match = Regex.Match(log, pattern);
-
-            if (match.Success)
-            {
-                string timeString = match.Groups[1].Value;
-                if (float.TryParse(timeString, NumberStyles.Float, CultureInfo.InvariantCulture, out float time))
-                {
-                    return time;
-                }
-            }
-
-            return 0f;
-        }
-
-        private static long ExtractLogTime(string log)
-        {
-            string pattern = @"^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}\.\d{3}\|(\d+)\|.*$";
-            Match match = Regex.Match(log, pattern);
-
-            if (match.Success)
-            {
-                string timeString = match.Groups[1].Value;
-                if (long.TryParse(timeString, out long time))
-                {
-                    return time;
-                }
-            }
-
-            return 0;
         }
 
 
